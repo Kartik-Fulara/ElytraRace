@@ -1,0 +1,200 @@
+name: Deploy Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      deploy_modrinth:
+        description: 'Deploy to Modrinth'
+        required: true
+        type: boolean
+        default: true
+      deploy_spigot:
+        description: 'Deploy to SpigotMC'
+        required: true
+        type: boolean
+        default: true
+      version:
+        description: 'Version (leave empty to use tag)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      jar_path: ${{ steps.plugin_info.outputs.jar_path }}
+      jar_name: ${{ steps.plugin_info.outputs.jar_name }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+      
+      - name: Get plugin info
+        id: plugin_info
+        run: |
+          JAR_FILE=$(ls target/*.jar | grep -v "original" | head -n 1)
+          echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "jar_name=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
+      
+      - name: Extract version
+        id: version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(date +'%Y.%m.%d-%H%M%S')
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-release
+          path: ${{ steps.plugin_info.outputs.jar_path }}
+          retention-days: 90
+          if-no-files-found: error
+
+  deploy-github:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-release
+          path: ./release
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./release/*.jar
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', needs.build.outputs.version) }}
+          name: Release ${{ needs.build.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## 🎉 Release ${{ needs.build.outputs.version }}
+            
+            Download the plugin JAR file below and place it in your server's `plugins` folder.
+            
+            ### Installation
+            1. Download `${{ needs.build.outputs.jar_name }}`
+            2. Stop your server
+            3. Place the JAR in your `plugins` folder
+            4. Start your server
+            
+            See the full changelog below.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-modrinth:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_modrinth == 'true') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-release
+          path: ./release
+      
+      - name: Deploy to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          
+          files: ./release/*.jar
+          
+          name: ${{ needs.build.outputs.jar_name }}
+          version: ${{ needs.build.outputs.version }}
+          version-type: release
+          
+          loaders: |
+            spigot
+            paper
+            purpur
+            bukkit
+          
+          game-versions: |
+            1.20.x
+            1.21.x
+          
+          changelog-file: CHANGELOG.md*
+
+  deploy-spigot:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_spigot == 'true') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-release
+          path: ./release
+      
+      - name: Deploy to SpigotMC
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          spigot-id: ${{ secrets.SPIGOT_RESOURCE_ID }}
+          spigot-token: ${{ secrets.SPIGOT_TOKEN }}
+          
+          files: ./release/*.jar
+          
+          name: ${{ needs.build.outputs.jar_name }}
+          version: ${{ needs.build.outputs.version }}
+          
+          changelog-file: CHANGELOG.md*
+
+  summary:
+    needs: [build, deploy-github, deploy-modrinth, deploy-spigot]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Plugin:** ${{ needs.build.outputs.jar_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Status" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Release: ${{ needs.deploy-github.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Modrinth: ${{ needs.deploy-modrinth.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- SpigotMC: ${{ needs.deploy-spigot.result }}" >> $GITHUB_STEP_SUMMARY
