@@ -1,0 +1,25 @@
+name: ElytraRace
+version: 1.0.0
+main: com.elytrarace.ElytraRacePlugin
+api-version: 1.21
+author: YourName
+description: Advanced multi-lobby Elytra Racing system with ready state, regions, and countdown.
+
+commands:
+  er:
+    description: Main ElytraRace command
+    usage: /er <subcommand>
+    aliases: [elytrarace, race]
+
+  ready:
+    description: Toggle ready/unready inside the start area
+    usage: /ready
+
+permissions:
+  race.use:
+    description: Allows player to run basic commands
+    default: true
+
+  race.admin:
+    description: Allows admin setup commands
+    default: op

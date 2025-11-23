@@ -1,0 +1,112 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with ElytraRace
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please provide detailed information to help us fix it quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clear and detailed description of the bug
+      placeholder: "The race doesn't start when I click..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Join a race
+        2. Click start button
+        3. See error message
+      render: bash
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+      placeholder: "The race should start normally..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens?
+      placeholder: "Nothing happens and no error is shown..."
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Plugin Version
+      description: What version are you using?
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: server_type
+    attributes:
+      label: Server Type
+      description: What server software are you using?
+      options:
+        - Paper 1.21.4
+        - Paper 1.21.3
+        - Paper 1.20.1
+        - Spigot
+        - Other
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: server_version
+    attributes:
+      label: Server Version
+      placeholder: "Paper 1.21.4"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server Logs
+      description: Paste relevant error messages from console
+      placeholder: |
+        [ElytraRace] Error in RaceManager:
+        java.lang.NullPointerException: Player not found
+      render: bash
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant Configuration
+      description: Paste relevant config sections (remove sensitive data)
+      render: yaml
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I've checked existing issues
+          required: true
+        - label: I've tried restarting the server
+          required: false
+        - label: I've tried removing other plugins
+          required: false

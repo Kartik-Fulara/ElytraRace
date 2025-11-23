@@ -1,0 +1,75 @@
+############################################################
+#              ELYTRA RACE CONFIGURATION
+############################################################
+
+race:
+  # Minimum players required in the START region to begin race
+  min-players: 2
+
+  # Maximum players allowed inside START region
+  max-players: 5
+
+  # 1 step = 0.5 seconds (10 ticks)
+  countdown-step-ticks: 10
+
+
+############################################################
+#                     REGION SETTINGS
+############################################################
+# Set regions using:
+# /er setup setregion lobby
+# /er setup setregion start
+# /er setup setregion finish
+#
+# Regions will be saved like:
+# regions:
+#   lobby:
+#     world: world
+#     min: {x: 0, y: 0, z: 0}
+#     max: {x: 10, y: 10, z: 10}
+############################################################
+
+regions: {}
+
+
+############################################################
+#                        RINGS
+############################################################
+# Add rings using:
+# /er setup addring <name>
+############################################################
+
+rings: {}
+
+
+############################################################
+#                       MESSAGES
+############################################################
+
+messages:
+
+  prefix: "&6[ElytraRace] &f"
+
+  # Player enters start area (x/5)
+  enter-start: "&e{player} &ahas entered the start area! (&e{count}&a/5)"
+
+  # Player leaves start area
+  leave-start: "&e{player} &chas left the start area! (&e{count}&c/5)"
+
+  # Player pressed ready
+  ready: "&e{player} &ais READY! (&e{ready}&a/{total})"
+
+  # Player unready
+  unready: "&e{player} &cis NOT READY! (&e{ready}&c/{total})"
+
+  # Countdown interrupted
+  countdown-stop: "&cCountdown stopped — a player is not ready."
+
+  # Race begins after GO
+  race-start: "&aRace begins NOW!"
+
+  # Player tries to finish without passing rings
+  finish-warning: "&cYou must pass all rings before finishing!"
+
+  # No permission
+  no-permission: "&cYou do not have permission for this command."

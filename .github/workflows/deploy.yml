@@ -1,0 +1,173 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'pom.xml'
+      - 'src/**'
+      - '.github/workflows/deploy.yml'
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: 🔍 Verify Java Installation
+        run: |
+          echo "========== Java Version =========="
+          java -version
+          echo ""
+          echo "========== Javac Version =========="
+          javac -version
+          echo ""
+          echo "========== Maven Version =========="
+          mvn --version
+          echo ""
+          echo "========== JAVA_HOME =========="
+          echo $JAVA_HOME
+
+      - name: 📦 Get version from pom.xml
+        id: version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Project version: $VERSION"
+
+      - name: 🔨 Compile Java files
+        run: |
+          mvn clean compile -e
+
+      - name: 📚 Package JAR file
+        run: |
+          mvn package -DskipTests
+
+      - name: 📋 List generated artifacts
+        run: |
+          echo "========== Files in target/ =========="
+          ls -lh target/ || echo "target folder empty"
+          echo ""
+          echo "========== JAR files =========="
+          find target -name "*.jar" -type f
+
+      - name: ⬆️ Upload JAR to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ElytraRace-${{ steps.version.outputs.VERSION }}
+          path: target/ElytraRace-${{ steps.version.outputs.VERSION }}.jar
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 🎉 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/ElytraRace-${{ steps.version.outputs.VERSION }}.jar
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: ElytraRace v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## ElytraRace v${{ steps.version.outputs.VERSION }}
+            
+            ### 📥 Download
+            Download the JAR file from the assets below.
+            
+            ### 📖 Installation
+            1. Download **ElytraRace-${{ steps.version.outputs.VERSION }}.jar**
+            2. Place in your server's `plugins/` folder
+            3. Restart your server
+            
+            ### ⚙️ Requirements
+            - **Server**: Paper 1.21.4+
+            - **Java**: Java 21+
+            - **Plugins**: WorldEdit 7.3.3+ (optional), WorldGuard 7.0.13+ (optional)
+            
+            ### 📚 Documentation
+            - [Installation Guide](https://github.com/${{ github.repository }}/blob/main/docs/INSTALLATION.md)
+            - [Commands Reference](https://github.com/${{ github.repository }}/blob/main/docs/COMMANDS.md)
+            - [Configuration Guide](https://github.com/${{ github.repository }}/blob/main/docs/CONFIGURATION.md)
+            
+            ### 🔗 Links
+            - [GitHub Repository](https://github.com/${{ github.repository }})
+            - [Issue Tracker](https://github.com/${{ github.repository }}/issues)
+            - [Discussions](https://github.com/${{ github.repository }}/discussions)
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📤 Upload to Modrinth (Optional)
+        if: env.MODRINTH_TOKEN != ''
+        continue-on-error: true
+        run: |
+          JAR_FILE=$(find target -name "ElytraRace-*.jar" -type f | head -1)
+          
+          if [ -z "$JAR_FILE" ]; then
+            echo "❌ JAR file not found!"
+            exit 1
+          fi
+          
+          echo "📤 Uploading to Modrinth: $JAR_FILE"
+          
+          curl -X POST \
+            -H "Authorization: ${{ secrets.MODRINTH_TOKEN }}" \
+            -F "data={\"version_number\":\"${{ steps.version.outputs.VERSION }}\",\"version_type\":\"release\",\"loaders\":[\"paper\"],\"game_versions\":[\"1.21.4\"],\"changelog\":\"See GitHub Release for details\"}" \
+            -F "file=@$JAR_FILE" \
+            https://api.modrinth.com/v2/version \
+            --fail-with-body
+          
+          echo "✅ Modrinth upload completed!"
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+
+      - name: 📤 Upload to SpigotMC (Optional)
+        if: env.SPIGOT_TOKEN != ''
+        continue-on-error: true
+        run: |
+          JAR_FILE=$(find target -name "ElytraRace-*.jar" -type f | head -1)
+          
+          if [ -z "$JAR_FILE" ]; then
+            echo "❌ JAR file not found!"
+            exit 1
+          fi
+          
+          echo "📤 Uploading to SpigotMC: $JAR_FILE"
+          
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.SPIGOT_TOKEN }}" \
+            -F "file=@$JAR_FILE" \
+            -F "changelog=See GitHub Release for details" \
+            https://api.spiget.org/v2/resources/${{ secrets.SPIGOT_RESOURCE_ID }}/versions \
+            --fail-with-body
+          
+          echo "✅ SpigotMC upload completed!"
+        env:
+          SPIGOT_TOKEN: ${{ secrets.SPIGOT_TOKEN }}
+
+      - name: ✅ Build Complete
+        run: |
+          echo "╔════════════════════════════════════╗"
+          echo "║  ✅ Build Completed Successfully!  ║"
+          echo "╚════════════════════════════════════╝"
+          echo ""
+          echo "📦 Version: v${{ steps.version.outputs.VERSION }}"
+          echo "📁 JAR File: ElytraRace-${{ steps.version.outputs.VERSION }}.jar"
+          echo "🔗 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }}"
+          echo "📥 Artifacts: Available in Actions"
+          echo ""
