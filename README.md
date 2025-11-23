@@ -1,120 +1,110 @@
-# 🏁 ElytraRace
+# ElytraRace
 
-A Minecraft Paper plugin that adds competitive elytra racing to your server with particles, statistics, and real-time leaderboards.
+A competitive elytra racing plugin for Minecraft Paper servers. Race through rings, beat the clock, and climb the leaderboard.
 
 [![Build Status](https://github.com/Kartik-Fulara/ElytraRace/workflows/Build%20and%20Deploy/badge.svg)](https://github.com/Kartik-Fulara/ElytraRace/actions)
 [![License](https://img.shields.io/github/license/Kartik-Fulara/ElytraRace)](LICENSE)
 [![Issues](https://img.shields.io/github/issues/Kartik-Fulara/ElytraRace)](https://github.com/Kartik-Fulara/ElytraRace/issues)
-[![Latest Release](https://img.shields.io/github/v/release/Kartik-Fulara/ElytraRace)](https://github.com/Kartik-Fulara/ElytraRace/releases)
 
-## ✨ Features
+## What It Does
 
-- 🎯 **Elytra Racing Challenges** - Create and manage custom race courses
-- 🏆 **Leaderboards** - Track best times and player statistics
-- ✨ **Particle Effects** - Visual indicators for race start, checkpoints, and finish
-- 🌍 **WorldEdit Integration** - Design race courses easily
-- 📊 **Player Statistics** - Track races won, personal records, and achievements
-- 💬 **Customizable Messages** - Full localization support
-- ⚙️ **Easy Configuration** - Simple YAML-based config
+ElytraRace lets you create competitive elytra racing on your server. Players fly through rings in order, their times are tracked, and the fastest racers make it onto the leaderboard. It's straightforward to set up and includes anti-cheat features to keep races fair.
 
-## 📋 Requirements
+**Key Features:**
+- Automatic race joining when players enter the start region
+- Ready-check system with countdown
+- Ring detection with order enforcement
+- Anti-cheat: rocket limits (max 3 per race), ring skip detection
+- Real-time statistics and leaderboards
+- WorldEdit integration for easy setup
+
+## Requirements
 
 - **Server**: Paper 1.21.4+
 - **Java**: Java 21+
-- **Plugins**: 
-  - WorldEdit 7.3.3+ (optional but recommended)
-  - WorldGuard 7.0.13+ (optional)
+- **Dependencies**: WorldEdit 7.3.3+ (required for region setup)
 
-## 🚀 Quick Start
-
-### Installation
+## Quick Start
 
 1. Download the latest release from [Releases](https://github.com/Kartik-Fulara/ElytraRace/releases)
-2. Place `ElytraRace.jar` in your server's `plugins/` folder
+2. Drop `ElytraRace.jar` into your `plugins/` folder
 3. Restart your server
-4. Configure settings in `plugins/ElytraRace/config.yml`
+4. Set up your race track (see [Installation Guide](docs/INSTALLATION.md))
 
-### Basic Commands
+## Basic Commands
 
+**Players:**
 ```
-/race help              - Show all available commands
-/race create <name>     - Create a new race
-/race join <name>       - Join a race
-/race start             - Start a race
-/race list              - List all available races
-/race stats             - View your statistics
-/race leaderboard       - View top players
+/er rules          - View race rules
+/er stats [player] - Check race statistics
+/er top            - View leaderboard
+/er progress       - Check your current progress
+/er timer          - View race time
+/ready             - Toggle ready status
 ```
 
-See [COMMANDS.md](docs/COMMANDS.md) for full command reference.
+**Admins:**
+```
+/er setup lobby     - Set lobby spawn point
+/er setup start     - Define start region (requires WorldEdit selection)
+/er setup finish    - Define finish region (requires WorldEdit selection)
+/er setup addring <name>     - Add ring at current location
+/er setup addringwe <name>   - Add ring from WorldEdit selection
+/er setup removering <name>  - Remove a ring
+/er listrings       - List all configured rings
+/er start           - Force start the race
+/er reset           - Reset current race
+```
 
-## 📖 Documentation
+See [COMMANDS.md](docs/COMMANDS.md) for detailed command documentation.
 
-- [Installation & Setup](docs/INSTALLATION.md)
-- [Configuration Guide](docs/CONFIGURATION.md)
-- [Commands Reference](docs/COMMANDS.md)
-- [Features Overview](docs/FEATURES.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [WorldEdit Integration](docs/WORLDEDIT.md)
-- [Changelog](docs/CHANGELOG.md)
+## How It Works
 
-## 🤝 Contributing
+1. **Setup**: Admin creates start/finish regions and places rings using WorldEdit
+2. **Joining**: Players walk into the start region to join the lobby
+3. **Ready Up**: Players use `/ready` when they're prepared to race
+4. **Countdown**: When all players are ready, a 5-second countdown begins
+5. **Race**: Players fly through rings in order - skip one and you're disqualified
+6. **Finish**: Complete all rings, then fly through the finish region
+7. **Results**: Times are recorded, stats updated, and winners announced
 
-We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+## Documentation
+
+- [Installation & Setup](docs/INSTALLATION.md) - Get the plugin running
+- [Commands Reference](docs/COMMANDS.md) - Complete command list
+- [Configuration Guide](docs/CONFIGURATION.md) - Customize settings
+- [WorldEdit Integration](docs/WORLDEDIT.md) - Setup guide with WorldEdit
+- [Contributing Guidelines](CONTRIBUTING.md) - Help improve the plugin
+- [Changelog](docs/CHANGELOG.md) - Version history
+
+## Contributing
+
+Found a bug? Want to add a feature? Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 - Branch naming conventions
 - Pull request process
 - Code standards
 - How to report issues
 
-### Quick Contribution Guide
+## Security
 
-1. Fork the repository
-2. Create a branch following our naming convention: `type/issue-number-description`
-   - Example: `feature/10-add-checkpoint-system`
-3. Make your changes and test thoroughly
-4. Submit a pull request to the `develop` branch
-5. Wait for review and address any feedback
+Found a security vulnerability? Please report it privately to **kartikfulara2003@gmail.com** instead of opening a public issue. See [SECURITY.md](SECURITY.md) for details.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+## License
 
-## 🔒 Security
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-Found a security vulnerability? **Please do not open a public issue.**
+## Support
 
-Report security issues privately to: **kartikfulara2003@gmail.com**
+- **Bug Reports**: [Open an Issue](https://github.com/Kartik-Fulara/ElytraRace/issues)
+- **Feature Requests**: [Start a Discussion](https://github.com/Kartik-Fulara/ElytraRace/discussions)
+- **Questions**: [GitHub Discussions](https://github.com/Kartik-Fulara/ElytraRace/discussions)
+- **Security Issues**: kartikfulara2003@gmail.com
 
-See [SECURITY.md](SECURITY.md) for our full security policy and response timeline.
+## Credits
 
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🐛 Bug Reports & Feature Requests
-
-- **Report Bugs**: [Open an Issue](https://github.com/Kartik-Fulara/ElytraRace/issues)
-- **Request Features**: [Start a Discussion](https://github.com/Kartik-Fulara/ElytraRace/discussions)
-- **Ask Questions**: [GitHub Discussions](https://github.com/Kartik-Fulara/ElytraRace/discussions)
-
-## 👥 Authors & Contributors
-
-- **Main Developer**: [Your Name](https://github.com/Kartik-Fulara)
-- **Contributors**: See [Contributors](https://github.com/Kartik-Fulara/ElytraRace/graphs/contributors)
-
-## 💬 Support & Community
-
-- 💡 **Questions?** Start a [Discussion](https://github.com/Kartik-Fulara/ElytraRace/discussions)
-- 🐛 **Found a bug?** [Report it](https://github.com/Kartik-Fulara/ElytraRace/issues)
-- 📌 **Need help?** Check [Troubleshooting](docs/TROUBLESHOOTING.md)
-- 🔒 **Security concern?** Email kartikfulara2003@gmail.com
-
-## 🌟 Show Your Support
-
-If you like this project, please consider:
-- ⭐ Starring the repository
-- 🐛 Reporting bugs
-- 💡 Suggesting new features
-- 🤝 Contributing code or documentation
+**Developer**: [Kartik Fulara](https://github.com/Kartik-Fulara)  
+**Contributors**: See [Contributors](https://github.com/Kartik-Fulara/ElytraRace/graphs/contributors)
 
 ---
 
-**Made with ❤️ for the Minecraft community**
+Built for Minecraft Paper servers • MIT License • [Report Issues](https://github.com/Kartik-Fulara/ElytraRace/issues)
