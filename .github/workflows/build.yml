@@ -6,7 +6,7 @@ on:
     paths:
       - "src/**"
       - "pom.xml"
-      - ".github/workflows/build.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 env:
@@ -15,30 +15,33 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK ${{ env.JAVA_VERSION }}
+      - name: ☕ Setup JDK
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
           cache: maven
 
-      - name: 🔨 Build with Maven
-        run: mvn -B clean package -DskipTests
+      - name: 🔨 Build plugin
+        run: mvn clean package -DskipTests
 
-      - name: 🔎 Read version from pom.xml
+      - name: 🔎 Extract version from pom.xml
         id: version
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
 
       - name: 📤 Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ElytraRace-${{ steps.version.outputs.VERSION }}
+          name: build-artifact
           path: target/*.jar
           retention-days: 7

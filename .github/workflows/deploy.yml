@@ -3,8 +3,7 @@ name: Deploy Plugin
 on:
   workflow_run:
     workflows: [ "Build Plugin" ]
-    types:
-      - completed
+    types: [ completed ]
   workflow_dispatch:
 
 jobs:
@@ -13,26 +12,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧪 Download all artifacts
+      - name: 🧪 Download build artifact
         uses: actions/download-artifact@v4
         with:
+          name: build-artifact
           path: ./artifact
 
-      - name: 📁 List downloaded files
+      - name: 📁 List files
         run: ls -R ./artifact
 
-      - name: 📦 Identify JAR file and version
+      - name: 📦 Find JAR & extract version
         id: info
         run: |
-          JAR_FILE=$(find artifact -name "*.jar" | head -n 1)
-          if [ -z "$JAR_FILE" ]; then
-            echo "❌ No JAR file found."
+          JAR=$(find artifact -name "*.jar" | head -1)
+          if [ -z "$JAR" ]; then
+            echo "❌ No JAR found!"
             exit 1
           fi
-          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "JAR_FILE=$JAR" >> $GITHUB_OUTPUT
 
-          VERSION=$(echo "$JAR_FILE" | sed -E 's/.*ElytraRace-(.*)\.jar/\1/')
+          VERSION=$(echo "$JAR" | sed -E 's/.*ElytraRace-(.*)\.jar/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+          echo "Detected JAR: $JAR"
+          echo "Detected version: $VERSION"
+
+      - name: 🏷 Create Git tag if missing
+        run: |
+          TAG="v${{ steps.info.outputs.VERSION }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --prune --unshallow || true
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag exists: $TAG"
+          else
+            echo "Creating tag: $TAG"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG" || echo "Tag push failed (already exists?)"
+          fi
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -40,10 +58,16 @@ jobs:
           files: ${{ steps.info.outputs.JAR_FILE }}
           tag_name: v${{ steps.info.outputs.VERSION }}
           name: ElytraRace v${{ steps.info.outputs.VERSION }}
+          body: |
+            Automated release of ElytraRace version ${{ steps.info.outputs.VERSION }}.
+            The plugin JAR is attached below.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔍 Check Modrinth configuration
+      # -----------------------
+      # Modrinth Upload
+      # -----------------------
+      - name: 🔍 Check Modrinth config
         id: modrinth_check
         run: |
           if [ -n "${{ secrets.MODRINTH_TOKEN }}" ] && [ -n "${{ vars.MODRINTH_PROJECT_ID }}" ]; then
@@ -59,7 +83,7 @@ jobs:
           modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           files: ${{ steps.info.outputs.JAR_FILE }}
-          name: "ElytraRace ${{ steps.info.outputs.VERSION }}"
+          name: ElytraRace ${{ steps.info.outputs.VERSION }}
           version: ${{ steps.info.outputs.VERSION }}
           version-type: release
           loaders: |
@@ -73,11 +97,14 @@ jobs:
             1.21.3
             1.21.4
 
-      - name: ⏭️ Skipping Modrinth Upload
+      - name: ⏭️ Skip Modrinth (not configured)
         if: steps.modrinth_check.outputs.configured == 'false'
-        run: echo "⏭️ Modrinth upload skipped — missing MODRINTH_TOKEN or MODRINTH_PROJECT_ID"
+        run: echo "Skipping Modrinth upload — token or project ID missing."
 
-      - name: 🔍 Check Spigot configuration
+      # -----------------------
+      # Spigot Upload
+      # -----------------------
+      - name: 🔍 Check Spigot config
         id: spigot_check
         run: |
           if [ -n "${{ secrets.SPIGOT_TOKEN }}" ] && [ -n "${{ vars.SPIGOT_RESOURCE_ID }}" ]; then
@@ -93,9 +120,20 @@ jobs:
           spigot-id: ${{ vars.SPIGOT_RESOURCE_ID }}
           spigot-token: ${{ secrets.SPIGOT_TOKEN }}
           files: ${{ steps.info.outputs.JAR_FILE }}
-          name: "ElytraRace ${{ steps.info.outputs.VERSION }}"
+          name: ElytraRace ${{ steps.info.outputs.VERSION }}
           version: ${{ steps.info.outputs.VERSION }}
 
-      - name: ⏭️ Skipping Spigot Upload
+      - name: ⏭️ Skip Spigot (not configured)
         if: steps.spigot_check.outputs.configured == 'false'
-        run: echo "⏭️ Spigot upload skipped — missing SPIGOT_TOKEN or SPIGOT_RESOURCE_ID"
+        run: echo "Skipping Spigot upload — token or resource ID missing."
+
+      # -----------------------
+      # DELETE ARTIFACT
+      # -----------------------
+      - name: 🗑️ Delete build artifact
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: build-artifact
+
+      - name: "✅ Deployment Complete"
+        run: echo "Deployment successful. Artifact cleaned up."
