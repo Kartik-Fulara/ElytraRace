@@ -25,6 +25,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -160,8 +163,6 @@ jobs:
           game-versions: |
             1.20.x
             1.21.x
-          
-          changelog-file: CHANGELOG.md*
 
   deploy-spigot:
     needs: build
@@ -181,17 +182,11 @@ jobs:
           path: ./release
       
       - name: Deploy to SpigotMC
-        uses: Kir-Antipov/mc-publish@v3.3
+        uses: GamerCoder215/spigot-updates@v1
         with:
-          spigot-id: ${{ secrets.SPIGOT_RESOURCE_ID }}
-          spigot-token: ${{ secrets.SPIGOT_TOKEN }}
-          
-          files: ./release/*.jar
-          
-          name: ${{ needs.build.outputs.jar_name }}
-          version: ${{ needs.build.outputs.version }}
-          
-          changelog-file: CHANGELOG.md*
+          resource-id: ${{ secrets.SPIGOT_RESOURCE_ID }}
+          api-key: ${{ secrets.SPIGOT_API_KEY }}
+          file: ./release/*.jar
 
   summary:
     needs: [build, deploy-github, deploy-modrinth, deploy-spigot]
