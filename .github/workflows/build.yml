@@ -33,6 +33,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Git Tag
+        if: startsWith(github.ref, 'refs/tags/') != true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -40,7 +41,7 @@ jobs:
           git push origin "v${{ steps.version.outputs.VERSION }}" || echo "Tag already exists"
 
       - name: Upload to Modrinth
-        if: vars.MODRINTH_PROJECT_ID != '' && secrets.MODRINTH_TOKEN != ''
+        if: vars.MODRINTH_PROJECT_ID != ''
         continue-on-error: true
         uses: Kir-Antipov/mc-publish@v3.3
         with:
@@ -57,12 +58,12 @@ jobs:
             1.21.x
 
       - name: Skip Modrinth Upload
-        if: vars.MODRINTH_PROJECT_ID == '' || secrets.MODRINTH_TOKEN == ''
+        if: vars.MODRINTH_PROJECT_ID == ''
         run: |
-          echo "⏭️ Modrinth upload skipped - Configure MODRINTH_PROJECT_ID and MODRINTH_TOKEN secrets to enable"
+          echo "⏭️ Modrinth upload skipped - Configure MODRINTH_PROJECT_ID variable and MODRINTH_TOKEN secret to enable"
 
       - name: Upload to SpigotMC
-        if: vars.SPIGOT_RESOURCE_ID != '' && secrets.SPIGOT_TOKEN != ''
+        if: vars.SPIGOT_RESOURCE_ID != ''
         continue-on-error: true
         uses: Kir-Antipov/mc-publish@v3.3
         with:
@@ -73,9 +74,9 @@ jobs:
           version: ${{ steps.version.outputs.VERSION }}
 
       - name: Skip SpigotMC Upload
-        if: vars.SPIGOT_RESOURCE_ID == '' || secrets.SPIGOT_TOKEN == ''
+        if: vars.SPIGOT_RESOURCE_ID == ''
         run: |
-          echo "⏭️ SpigotMC upload skipped - Configure SPIGOT_RESOURCE_ID and SPIGOT_TOKEN secrets to enable"
+          echo "⏭️ SpigotMC upload skipped - Configure SPIGOT_RESOURCE_ID variable and SPIGOT_TOKEN secret to enable"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
