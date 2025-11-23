@@ -1,204 +1,109 @@
-name: Build and Deploy
+name: Deploy Plugin
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'pom.xml'
-      - 'src/**'
-      - '.github/workflows/deploy.yml'
-
-env:
-  JAVA_VERSION: '21'
+  workflow_run:
+    workflows: [ "Build Plugin" ]
+    types:
+      - completed
+  workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+      - name: 🧪 Download built artifact
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
+          name: ElytraRace-*
+          path: ./artifact
 
-      - name: ☕ Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
+      - name: 📁 List downloaded files
+        run: ls -R ./artifact
 
-      - name: 🔍 Verify Java Installation
+      - name: 📦 Identify JAR file and version
+        id: info
         run: |
-          echo "========== Java Version =========="
-          java -version
-          echo ""
-          echo "========== Javac Version =========="
-          javac -version
-          echo ""
-          echo "========== Maven Version =========="
-          mvn --version
-          echo ""
-          echo "========== JAVA_HOME =========="
-          echo $JAVA_HOME
-
-      - name: 📦 Get version from pom.xml
-        id: version
-        run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          JAR_FILE=$(find artifact -name "*.jar" | head -n 1)
+          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_OUTPUT
+          VERSION=$(echo "$JAR_FILE" | sed -E 's/.*ElytraRace-(.*)\.jar/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Project version: $VERSION"
 
-      - name: 🔨 Compile Java files
-        run: |
-          mvn clean compile -e
-
-      - name: 📚 Package JAR file
-        run: |
-          mvn package -DskipTests
-
-      - name: 📋 List generated artifacts
-        run: |
-          echo "========== Files in target/ =========="
-          ls -lh target/ || echo "target folder empty"
-          echo ""
-          echo "========== JAR files =========="
-          find target -name "*.jar" -type f
-
-      - name: ⬆️ Upload JAR to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ElytraRace-${{ steps.version.outputs.VERSION }}
-          path: target/ElytraRace-${{ steps.version.outputs.VERSION }}.jar
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: 🎉 Create GitHub Release
+      # -----------------------------------------------------
+      # GitHub Release
+      # -----------------------------------------------------
+      - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: target/ElytraRace-${{ steps.version.outputs.VERSION }}.jar
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          name: ElytraRace v${{ steps.version.outputs.VERSION }}
-          body: |
-            ## ElytraRace v${{ steps.version.outputs.VERSION }}
-            
-            ### 📥 Download
-            Download the JAR file from the assets below.
-            
-            ### 📖 Installation
-            1. Download **ElytraRace-${{ steps.version.outputs.VERSION }}.jar**
-            2. Place in your server's `plugins/` folder
-            3. Restart your server
-            
-            ### ⚙️ Requirements
-            - **Server**: Paper 1.21.4+
-            - **Java**: Java 21+
-            - **Plugins**: WorldEdit 7.3.3+ (optional), WorldGuard 7.0.13+ (optional)
-            
-            ### 📚 Documentation
-            - [Installation Guide](https://github.com/${{ github.repository }}/blob/main/docs/INSTALLATION.md)
-            - [Commands Reference](https://github.com/${{ github.repository }}/blob/main/docs/COMMANDS.md)
-            - [Configuration Guide](https://github.com/${{ github.repository }}/blob/main/docs/CONFIGURATION.md)
-            
-            ### 🔗 Links
-            - [GitHub Repository](https://github.com/${{ github.repository }})
-            - [Issue Tracker](https://github.com/${{ github.repository }}/issues)
-            - [Discussions](https://github.com/${{ github.repository }}/discussions)
+          files: ${{ steps.info.outputs.JAR_FILE }}
+          tag_name: v${{ steps.info.outputs.VERSION }}
+          name: ElytraRace v${{ steps.info.outputs.VERSION }}
           draft: false
-          prerelease: false
-          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Modrinth Configuration
-        id: check_modrinth
+      # -----------------------------------------------------
+      # Modrinth Upload
+      # -----------------------------------------------------
+      - name: 🔍 Check Modrinth configuration
+        id: modrinth_check
         run: |
-          if [ -n "${{ secrets.MODRINTH_TOKEN }}" ]; then
+          if [ -n "${{ secrets.MODRINTH_TOKEN }}" ] && [ -n "${{ vars.MODRINTH_PROJECT_ID }}" ]; then
             echo "configured=true" >> $GITHUB_OUTPUT
           else
             echo "configured=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 📤 Upload to Modrinth
-        if: steps.check_modrinth.outputs.configured == 'true'
-        continue-on-error: true
-        run: |
-          JAR_FILE=$(find target -name "ElytraRace-*.jar" -type f | head -1)
-          
-          if [ -z "$JAR_FILE" ]; then
-            echo "❌ JAR file not found!"
-            exit 1
-          fi
-          
-          echo "📤 Uploading to Modrinth: $JAR_FILE"
-          
-          # Get project ID from vars or use default
-          PROJECT_ID="${{ vars.MODRINTH_PROJECT_ID }}"
-          if [ -z "$PROJECT_ID" ]; then
-            echo "⚠️ MODRINTH_PROJECT_ID not set, skipping upload"
-            exit 0
-          fi
-          
-          curl -X POST \
-            -H "Authorization: ${{ secrets.MODRINTH_TOKEN }}" \
-            -F "data={\"project_id\":\"$PROJECT_ID\",\"version_number\":\"${{ steps.version.outputs.VERSION }}\",\"version_type\":\"release\",\"loaders\":[\"paper\",\"spigot\",\"purpur\"],\"game_versions\":[\"1.21\",\"1.21.1\",\"1.21.2\",\"1.21.3\",\"1.21.4\"],\"changelog\":\"See GitHub Release for details\"}" \
-            -F "file=@$JAR_FILE" \
-            https://api.modrinth.com/v2/version \
-            --fail-with-body
-          
-          echo "✅ Modrinth upload completed!"
+        if: steps.modrinth_check.outputs.configured == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: ${{ steps.info.outputs.JAR_FILE }}
+          name: "ElytraRace ${{ steps.info.outputs.VERSION }}"
+          version: ${{ steps.info.outputs.VERSION }}
+          version-type: release
+          loaders: |
+            paper
+            spigot
+            purpur
+          game-versions: |
+            1.21
+            1.21.1
+            1.21.2
+            1.21.3
+            1.21.4
 
-      - name: Skip Modrinth Upload
-        if: steps.check_modrinth.outputs.configured == 'false'
+      - name: ⏭️ Skipping Modrinth Upload
+        if: steps.modrinth_check.outputs.configured == 'false'
         run: |
-          echo "⏭️ Modrinth upload skipped - Configure MODRINTH_TOKEN secret and MODRINTH_PROJECT_ID variable to enable"
+          echo "⏭️ Modrinth upload skipped — missing MODRINTH_TOKEN or MODRINTH_PROJECT_ID"
 
-      - name: Check SpigotMC Configuration
-        id: check_spigot
+      # -----------------------------------------------------
+      # Spigot Upload
+      # -----------------------------------------------------
+      - name: 🔍 Check Spigot configuration
+        id: spigot_check
         run: |
-          if [ -n "${{ secrets.SPIGOT_TOKEN }}" ] && [ -n "${{ secrets.SPIGOT_RESOURCE_ID }}" ]; then
+          if [ -n "${{ secrets.SPIGOT_TOKEN }}" ] && [ -n "${{ vars.SPIGOT_RESOURCE_ID }}" ]; then
             echo "configured=true" >> $GITHUB_OUTPUT
           else
             echo "configured=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 📤 Upload to SpigotMC
-        if: steps.check_spigot.outputs.configured == 'true'
-        continue-on-error: true
-        run: |
-          JAR_FILE=$(find target -name "ElytraRace-*.jar" -type f | head -1)
-          
-          if [ -z "$JAR_FILE" ]; then
-            echo "❌ JAR file not found!"
-            exit 1
-          fi
-          
-          echo "📤 Uploading to SpigotMC: $JAR_FILE"
-          
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.SPIGOT_TOKEN }}" \
-            -F "file=@$JAR_FILE" \
-            -F "changelog=See GitHub Release for details" \
-            https://api.spiget.org/v2/resources/${{ secrets.SPIGOT_RESOURCE_ID }}/versions \
-            --fail-with-body
-          
-          echo "✅ SpigotMC upload completed!"
+        if: steps.spigot_check.outputs.configured == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          spigot-id: ${{ vars.SPIGOT_RESOURCE_ID }}
+          spigot-token: ${{ secrets.SPIGOT_TOKEN }}
+          files: ${{ steps.info.outputs.JAR_FILE }}
+          name: "ElytraRace ${{ steps.info.outputs.VERSION }}"
+          version: ${{ steps.info.outputs.VERSION }}
 
-      - name: Skip SpigotMC Upload
-        if: steps.check_spigot.outputs.configured == 'false'
+      - name: ⏭️ Skipping SpigotMC Upload
+        if: steps.spigot_check.outputs.configured == 'false'
         run: |
-          echo "⏭️ SpigotMC upload skipped - Configure SPIGOT_TOKEN and SPIGOT_RESOURCE_ID secrets to enable"
-
-      - name: ✅ Build Complete
-        run: |
-          echo "╔════════════════════════════════════╗"
-          echo "║  ✅ Build Completed Successfully!  ║"
-          echo "╚════════════════════════════════════╝"
-          echo ""
-          echo "📦 Version: v${{ steps.version.outputs.VERSION }}"
-          echo "📁 JAR File: ElytraRace-${{ steps.version.outputs.VERSION }}.jar"
-          echo "🔗 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }}"
-          echo "📥 Artifacts: Available in Actions"
-          echo ""
+          echo "⏭️ SpigotMC upload skipped — missing SPIGOT_TOKEN or SPIGOT_RESOURCE_ID"

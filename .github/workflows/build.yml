@@ -1,108 +1,44 @@
-name: Build and Deploy
+name: Build Plugin
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "pom.xml"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
 
+env:
+  JAVA_VERSION: "21"
+
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: ☕ Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: "21"
-          distribution: "temurin"
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
           cache: maven
 
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
+      - name: 🔨 Build with Maven
+        run: mvn -B clean package -DskipTests
 
-      - name: Get version from pom.xml
+      - name: 🔎 Read version from pom.xml
         id: version
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create Git Tag
-        if: startsWith(github.ref, 'refs/tags/') != true
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.VERSION }}" -m "Release v${{ steps.version.outputs.VERSION }}"
-          git push origin "v${{ steps.version.outputs.VERSION }}" || echo "Tag already exists"
-
-      - name: Check Modrinth Configuration
-        id: check_modrinth
-        run: |
-          if [ -n "${{ vars.MODRINTH_PROJECT_ID }}" ]; then
-            echo "configured=true" >> $GITHUB_OUTPUT
-          else
-            echo "configured=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload to Modrinth
-        if: steps.check_modrinth.outputs.configured == 'true'
-        continue-on-error: true
-        uses: Kir-Antipov/mc-publish@v3.3
+      - name: 📤 Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
-          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files: target/*.jar
-          name: "Release ${{ steps.version.outputs.VERSION }}"
-          version: ${{ steps.version.outputs.VERSION }}
-          version-type: release
-          loaders: |
-            spigot
-            paper
-          game-versions: |
-            1.21.x
-
-      - name: Skip Modrinth Upload
-        if: steps.check_modrinth.outputs.configured == 'false'
-        run: |
-          echo "⏭️ Modrinth upload skipped - Configure MODRINTH_PROJECT_ID variable and MODRINTH_TOKEN secret to enable"
-
-      - name: Check SpigotMC Configuration
-        id: check_spigot
-        run: |
-          if [ -n "${{ vars.SPIGOT_RESOURCE_ID }}" ]; then
-            echo "configured=true" >> $GITHUB_OUTPUT
-          else
-            echo "configured=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload to SpigotMC
-        if: steps.check_spigot.outputs.configured == 'true'
-        continue-on-error: true
-        uses: Kir-Antipov/mc-publish@v3.3
-        with:
-          spigot-id: ${{ vars.SPIGOT_RESOURCE_ID }}
-          spigot-token: ${{ secrets.SPIGOT_TOKEN }}
-          files: target/*.jar
-          name: "Release ${{ steps.version.outputs.VERSION }}"
-          version: ${{ steps.version.outputs.VERSION }}
-
-      - name: Skip SpigotMC Upload
-        if: steps.check_spigot.outputs.configured == 'false'
-        run: |
-          echo "⏭️ SpigotMC upload skipped - Configure SPIGOT_RESOURCE_ID variable and SPIGOT_TOKEN secret to enable"
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: target/*.jar
-          name: Release ${{ steps.version.outputs.VERSION }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: ElytraRace-${{ steps.version.outputs.VERSION }}
+          path: target/*.jar
+          retention-days: 7
