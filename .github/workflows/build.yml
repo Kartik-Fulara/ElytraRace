@@ -6,7 +6,7 @@ on:
     paths:
       - "src/**"
       - "pom.xml"
-      - ".github/workflows/**"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
 
 env:
@@ -19,27 +19,26 @@ jobs:
       version: ${{ steps.version.outputs.VERSION }}
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ☕ Setup JDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
           cache: maven
 
-      - name: 🔨 Build plugin
-        run: mvn clean package -DskipTests
+      - name: Build
+        run: mvn -B clean package -DskipTests
 
-      - name: 🔎 Extract version from pom.xml
+      - name: Read version
         id: version
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Detected version: $VERSION"
 
-      - name: 📤 Upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact

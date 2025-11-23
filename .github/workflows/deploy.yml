@@ -2,8 +2,9 @@ name: Deploy Plugin
 
 on:
   workflow_run:
-    workflows: [ "Build Plugin" ]
+    workflows: [ "Build Plugin" ]   # Must match EXACTLY your build workflow name
     types: [ completed ]
+
   workflow_dispatch:
 
 jobs:
@@ -12,15 +13,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ------------------------------------------------
+      # Download artifact from Build Plugin workflow
+      # ------------------------------------------------
       - name: 🧪 Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact
+          name: build-artifact          # STATIC name – must match build.yml
           path: ./artifact
 
-      - name: 📁 List files
+      - name: 📁 Show downloaded files
         run: ls -R ./artifact
 
+      # ------------------------------------------------
+      # Find the JAR file and extract version
+      # ------------------------------------------------
       - name: 📦 Find JAR & extract version
         id: info
         run: |
@@ -37,21 +44,28 @@ jobs:
           echo "Detected JAR: $JAR"
           echo "Detected version: $VERSION"
 
+      # ------------------------------------------------
+      # Create Git tag (if missing)
+      # ------------------------------------------------
       - name: 🏷 Create Git tag if missing
         run: |
           TAG="v${{ steps.info.outputs.VERSION }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git fetch --prune --unshallow || true
 
           if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag exists: $TAG"
+            echo "Tag $TAG already exists."
           else
-            echo "Creating tag: $TAG"
+            echo "Creating tag $TAG"
             git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG" || echo "Tag push failed (already exists?)"
+            git push origin "$TAG" || echo "Tag push failed (maybe exists)"
           fi
 
+      # ------------------------------------------------
+      # Create GitHub Release + upload the JAR
+      # ------------------------------------------------
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -59,14 +73,14 @@ jobs:
           tag_name: v${{ steps.info.outputs.VERSION }}
           name: ElytraRace v${{ steps.info.outputs.VERSION }}
           body: |
-            Automated release of ElytraRace version ${{ steps.info.outputs.VERSION }}.
+            Automated release for ElytraRace version ${{ steps.info.outputs.VERSION }}.
             The plugin JAR is attached below.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # -----------------------
+      # ------------------------------------------------
       # Modrinth Upload
-      # -----------------------
+      # ------------------------------------------------
       - name: 🔍 Check Modrinth config
         id: modrinth_check
         run: |
@@ -97,13 +111,13 @@ jobs:
             1.21.3
             1.21.4
 
-      - name: ⏭️ Skip Modrinth (not configured)
+      - name: ⏭️ Skip Modrinth upload
         if: steps.modrinth_check.outputs.configured == 'false'
-        run: echo "Skipping Modrinth upload — token or project ID missing."
+        run: echo "Modrinth upload skipped — missing MODRINTH_TOKEN or MODRINTH_PROJECT_ID."
 
-      # -----------------------
+      # ------------------------------------------------
       # Spigot Upload
-      # -----------------------
+      # ------------------------------------------------
       - name: 🔍 Check Spigot config
         id: spigot_check
         run: |
@@ -123,17 +137,17 @@ jobs:
           name: ElytraRace ${{ steps.info.outputs.VERSION }}
           version: ${{ steps.info.outputs.VERSION }}
 
-      - name: ⏭️ Skip Spigot (not configured)
+      - name: ⏭️ Skip Spigot upload
         if: steps.spigot_check.outputs.configured == 'false'
-        run: echo "Skipping Spigot upload — token or resource ID missing."
+        run: echo "Spigot upload skipped — missing SPIGOT_TOKEN or SPIGOT_RESOURCE_ID."
 
-      # -----------------------
-      # DELETE ARTIFACT
-      # -----------------------
+      # ------------------------------------------------
+      # Delete artifact after deployment
+      # ------------------------------------------------
       - name: 🗑️ Delete build artifact
         uses: geekyeggo/delete-artifact@v2
         with:
           name: build-artifact
 
       - name: "✅ Deployment Complete"
-        run: echo "Deployment successful. Artifact cleaned up."
+        run: echo "Deployment completed successfully and artifact deleted."
