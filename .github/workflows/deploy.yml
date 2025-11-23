@@ -112,8 +112,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📤 Upload to Modrinth (Optional)
-        if: env.MODRINTH_TOKEN != ''
+      - name: Check Modrinth Configuration
+        id: check_modrinth
+        run: |
+          if [ -n "${{ secrets.MODRINTH_TOKEN }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📤 Upload to Modrinth
+        if: steps.check_modrinth.outputs.configured == 'true'
         continue-on-error: true
         run: |
           JAR_FILE=$(find target -name "ElytraRace-*.jar" -type f | head -1)
@@ -125,19 +134,38 @@ jobs:
           
           echo "📤 Uploading to Modrinth: $JAR_FILE"
           
+          # Get project ID from vars or use default
+          PROJECT_ID="${{ vars.MODRINTH_PROJECT_ID }}"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "⚠️ MODRINTH_PROJECT_ID not set, skipping upload"
+            exit 0
+          fi
+          
           curl -X POST \
             -H "Authorization: ${{ secrets.MODRINTH_TOKEN }}" \
-            -F "data={\"version_number\":\"${{ steps.version.outputs.VERSION }}\",\"version_type\":\"release\",\"loaders\":[\"paper\"],\"game_versions\":[\"1.21.4\"],\"changelog\":\"See GitHub Release for details\"}" \
+            -F "data={\"project_id\":\"$PROJECT_ID\",\"version_number\":\"${{ steps.version.outputs.VERSION }}\",\"version_type\":\"release\",\"loaders\":[\"paper\",\"spigot\",\"purpur\"],\"game_versions\":[\"1.21\",\"1.21.1\",\"1.21.2\",\"1.21.3\",\"1.21.4\"],\"changelog\":\"See GitHub Release for details\"}" \
             -F "file=@$JAR_FILE" \
             https://api.modrinth.com/v2/version \
             --fail-with-body
           
           echo "✅ Modrinth upload completed!"
-        env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
 
-      - name: 📤 Upload to SpigotMC (Optional)
-        if: env.SPIGOT_TOKEN != ''
+      - name: Skip Modrinth Upload
+        if: steps.check_modrinth.outputs.configured == 'false'
+        run: |
+          echo "⏭️ Modrinth upload skipped - Configure MODRINTH_TOKEN secret and MODRINTH_PROJECT_ID variable to enable"
+
+      - name: Check SpigotMC Configuration
+        id: check_spigot
+        run: |
+          if [ -n "${{ secrets.SPIGOT_TOKEN }}" ] && [ -n "${{ secrets.SPIGOT_RESOURCE_ID }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📤 Upload to SpigotMC
+        if: steps.check_spigot.outputs.configured == 'true'
         continue-on-error: true
         run: |
           JAR_FILE=$(find target -name "ElytraRace-*.jar" -type f | head -1)
@@ -157,8 +185,11 @@ jobs:
             --fail-with-body
           
           echo "✅ SpigotMC upload completed!"
-        env:
-          SPIGOT_TOKEN: ${{ secrets.SPIGOT_TOKEN }}
+
+      - name: Skip SpigotMC Upload
+        if: steps.check_spigot.outputs.configured == 'false'
+        run: |
+          echo "⏭️ SpigotMC upload skipped - Configure SPIGOT_TOKEN and SPIGOT_RESOURCE_ID secrets to enable"
 
       - name: ✅ Build Complete
         run: |

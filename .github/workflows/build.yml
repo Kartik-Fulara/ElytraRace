@@ -40,8 +40,17 @@ jobs:
           git tag -a "v${{ steps.version.outputs.VERSION }}" -m "Release v${{ steps.version.outputs.VERSION }}"
           git push origin "v${{ steps.version.outputs.VERSION }}" || echo "Tag already exists"
 
+      - name: Check Modrinth Configuration
+        id: check_modrinth
+        run: |
+          if [ -n "${{ vars.MODRINTH_PROJECT_ID }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload to Modrinth
-        if: vars.MODRINTH_PROJECT_ID != ''
+        if: steps.check_modrinth.outputs.configured == 'true'
         continue-on-error: true
         uses: Kir-Antipov/mc-publish@v3.3
         with:
@@ -58,12 +67,21 @@ jobs:
             1.21.x
 
       - name: Skip Modrinth Upload
-        if: vars.MODRINTH_PROJECT_ID == ''
+        if: steps.check_modrinth.outputs.configured == 'false'
         run: |
           echo "⏭️ Modrinth upload skipped - Configure MODRINTH_PROJECT_ID variable and MODRINTH_TOKEN secret to enable"
 
+      - name: Check SpigotMC Configuration
+        id: check_spigot
+        run: |
+          if [ -n "${{ vars.SPIGOT_RESOURCE_ID }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload to SpigotMC
-        if: vars.SPIGOT_RESOURCE_ID != ''
+        if: steps.check_spigot.outputs.configured == 'true'
         continue-on-error: true
         uses: Kir-Antipov/mc-publish@v3.3
         with:
@@ -74,7 +92,7 @@ jobs:
           version: ${{ steps.version.outputs.VERSION }}
 
       - name: Skip SpigotMC Upload
-        if: vars.SPIGOT_RESOURCE_ID == ''
+        if: steps.check_spigot.outputs.configured == 'false'
         run: |
           echo "⏭️ SpigotMC upload skipped - Configure SPIGOT_RESOURCE_ID variable and SPIGOT_TOKEN secret to enable"
 
