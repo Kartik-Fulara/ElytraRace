@@ -78,22 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned Features
 - Multiple race track support
-- Team races (2v2, 3v3)
 - Spectator mode
-- Race replay system
-- Custom power-ups
-- Economy plugin integration
-- Web-based leaderboard
-- Race checkpoints
-- Practice mode
-- Time trial mode
-- Ghost racing (race against best time)
-- Custom race modifiers
-- Anti-cheat integration
-- PlaceholderAPI support
-- Holographic leaderboards
 - Race rewards system
-
 ---
 
 ## Version History
