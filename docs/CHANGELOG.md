@@ -125,5 +125,5 @@ None yet - this is the initial release!
 
 ---
 
-[1.0.0]: https://github.com/yourusername/ElytraRace/releases/tag/v1.0.0
-[Unreleased]: https://github.com/yourusername/ElytraRace/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/yourKartik-Fulara/ElytraRace/releases/tag/v1.0.0
+[Unreleased]: https://github.com/yourKartik-Fulara/ElytraRace/compare/v1.0.0...HEAD

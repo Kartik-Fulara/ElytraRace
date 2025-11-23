@@ -136,8 +136,8 @@ Platform Support:
   - Paper (1.21+)
   
 Links:
-  Source: https://github.com/yourusername/ElytraRace
-  Issues: https://github.com/yourusername/ElytraRace/issues
+  Source: https://github.com/yourKartik-Fulara/ElytraRace
+  Issues: https://github.com/yourKartik-Fulara/ElytraRace/issues
   Discord: https://discord.gg/yourserver
 ```
 

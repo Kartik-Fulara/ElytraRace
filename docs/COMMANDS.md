@@ -432,4 +432,4 @@ elytrarace.*                          # All permissions
 - 📖 See [INSTALLATION.md](INSTALLATION.md) for setup
 - 🔧 See [CONFIGURATION.md](CONFIGURATION.md) for advanced options
 - 🆘 See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
-- 💬 Ask in [Discussions](https://github.com/USERNAME/ElytraRace/discussions)
+- 💬 Ask in [Discussions](https://github.com/Kartik-Fulara/ElytraRace/discussions)

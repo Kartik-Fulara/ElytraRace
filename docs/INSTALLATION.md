@@ -19,13 +19,13 @@ These plugins are optional but recommended:
 ### Step 1: Download the Plugin
 
 #### Option A: Download Release
-1. Go to [GitHub Releases](https://github.com/USERNAME/ElytraRace/releases)
+1. Go to [GitHub Releases](https://github.com/Kartik-Fulara/ElytraRace/releases)
 2. Download the latest `ElytraRace-x.x.x.jar`
 3. Save to your computer
 
 #### Option B: Build from Source
 ```bash
-git clone https://github.com/USERNAME/ElytraRace.git
+git clone https://github.com/Kartik-Fulara/ElytraRace.git
 cd ElytraRace
 mvn clean package
 # JAR will be in target/ folder
@@ -85,7 +85,7 @@ database:
     host: localhost
     port: 3306
     database: elytrarace
-    username: root
+    Kartik-Fulara: root
     password: ""
 ```
 
@@ -168,13 +168,13 @@ elytrarace.admin.reload      # Reload config
 
 #### LuckPerms Example:
 ```bash
-/lp user USERNAME permission set elytrarace.player.* true
+/lp user Kartik-Fulara permission set elytrarace.player.* true
 /lp group admins permission set elytrarace.admin.* true
 ```
 
 #### PermissionsEx Example:
 ```bash
-/pex user USERNAME add elytrarace.player.*
+/pex user Kartik-Fulara add elytrarace.player.*
 /pex group admins add elytrarace.admin.*
 ```
 
@@ -233,6 +233,6 @@ robocopy plugins\ElytraRace backup\ElytraRace-backup-2025 /E
 ## Getting Help
 
 - 📖 See [CONFIGURATION.md](CONFIGURATION.md) for advanced setup
-- 💬 Join [Discussions](https://github.com/USERNAME/ElytraRace/discussions)
-- 🐛 Report issues at [GitHub Issues](https://github.com/USERNAME/ElytraRace/issues)
+- 💬 Join [Discussions](https://github.com/Kartik-Fulara/ElytraRace/discussions)
+- 🐛 Report issues at [GitHub Issues](https://github.com/Kartik-Fulara/ElytraRace/issues)
 - 📚 Check [Troubleshooting](TROUBLESHOOTING.md) for common problems

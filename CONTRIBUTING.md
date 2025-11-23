@@ -262,8 +262,8 @@ All contributions are credited in:
 ## 💡 Getting Help
 
 - 📖 Read the [documentation](docs/)
-- 💬 Start a [Discussion](https://github.com/USERNAME/ElytraRace/discussions)
-- 🔍 Check existing [Issues](https://github.com/USERNAME/ElytraRace/issues)
+- 💬 Start a [Discussion](https://github.com/Kartik-Fulara/ElytraRace/discussions)
+- 🔍 Check existing [Issues](https://github.com/Kartik-Fulara/ElytraRace/issues)
 - 📝 Review [SECURITY.md](SECURITY.md) for security concerns
 
 ## 🎉 Recognition

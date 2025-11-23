@@ -11,7 +11,7 @@
 
 **⚠️ DO NOT open a public GitHub issue for security vulnerabilities.**
 
-Instead, please report to: **security@elytrarace.dev** or use GitHub Security Advisories.
+Instead, please report to: **kartikfulara2003@gmail.com** or use GitHub Security Advisories.
 
 ### What to Include
 
@@ -181,9 +181,9 @@ If your report leads to a security fix, you will be:
 
 ## Questions?
 
-- 📧 Email: security@elytrarace.dev
-- 💬 GitHub Discussions: [Ask a Question](https://github.com/USERNAME/ElytraRace/discussions)
-- 📋 GitHub Issues: [Report Non-Security Issue](https://github.com/USERNAME/ElytraRace/issues)
+- 📧 Email: kartikfulara2003@gmail.com
+- 💬 GitHub Discussions: [Ask a Question](https://github.com/Kartik-Fulara/ElytraRace/discussions)
+- 📋 GitHub Issues: [Report Non-Security Issue](https://github.com/Kartik-Fulara/ElytraRace/issues)
 
 ---
 
