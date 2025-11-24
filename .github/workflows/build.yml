@@ -44,12 +44,12 @@ jobs:
         with:
           name: plugin-build
           path: ${{ steps.plugin_info.outputs.jar_path }}
-          retention-days: 30
+          retention-days: 5
           if-no-files-found: error
       
       - name: Build summary
         run: |
-          echo "## Build Successful! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Build Successful! :rocket:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Plugin:** ${{ steps.plugin_info.outputs.jar_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
