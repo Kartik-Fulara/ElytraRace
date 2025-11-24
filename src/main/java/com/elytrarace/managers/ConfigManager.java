@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2025 Kartik Fulara
  * 
@@ -30,6 +29,38 @@ public class ConfigManager {
         plugin.getConfig().addDefault("race.countdown-seconds", 5);
         plugin.getConfig().addDefault("race.ready-timeout-seconds", 120);
         plugin.getConfig().addDefault("race.max-time-minutes", 30);
+        
+        // NEW: Feature 2 - Rocket requirement
+        plugin.getConfig().addDefault("race.required-rockets", 64);
+        
+        // NEW: Feature 10 - Auto-finish timer
+        plugin.getConfig().addDefault("race.auto-finish-time", 180);
+        
+        // NEW: Feature 3 - Region import settings
+        plugin.getConfig().addDefault("region-import.enabled", true);
+        plugin.getConfig().addDefault("region-import.prefix", "ring");
+        plugin.getConfig().addDefault("region-import.auto-detect", true);
+        
+        // NEW: Feature 9 - Anti-cheat boundary
+        plugin.getConfig().addDefault("anti-cheat.boundary-distance", 50);
+        plugin.getConfig().addDefault("anti-cheat.teleport-on-exceed", true);
+        plugin.getConfig().addDefault("anti-cheat.warnings-before-teleport", 3);
+        
+        // NEW: Feature 7 - Auto-spectator
+        plugin.getConfig().addDefault("spectator.auto-enable", true);
+        plugin.getConfig().addDefault("spectator.return-to-lobby", true);
+        plugin.getConfig().addDefault("spectator.delay-seconds", 3);
+        
+        // NEW: Feature 4 - Starting platform
+        plugin.getConfig().addDefault("starting-platform.enabled", true);
+        plugin.getConfig().addDefault("starting-platform.material", "GLASS");
+        plugin.getConfig().addDefault("starting-platform.size", 3);
+        plugin.getConfig().addDefault("starting-platform.height-offset", -1);
+        
+        // NEW: Feature 8 - Ring preview
+        plugin.getConfig().addDefault("ring-preview.enabled", true);
+        plugin.getConfig().addDefault("ring-preview.particle", "VILLAGER_HAPPY");
+        plugin.getConfig().addDefault("ring-preview.particle-count", 20);
 
         plugin.getConfig().addDefault("messages.prefix", "&6[ElytraRace] &f");
         plugin.getConfig().addDefault("messages.race-started", "&aThe race has started! Fly through all the rings!");
@@ -42,6 +73,17 @@ public class ConfigManager {
         plugin.getConfig().addDefault("messages.already-ready", "&cYou are already ready!");
         plugin.getConfig().addDefault("messages.lobby-full", "&cThe lobby is full!");
         plugin.getConfig().addDefault("messages.no-permission", "&cYou don't have permission to use this command!");
+        
+        // NEW: Additional messages
+        plugin.getConfig().addDefault("messages.insufficient-rockets", "&cYou need {required} rockets to ready up! You have {current}.");
+        plugin.getConfig().addDefault("messages.inventory-not-empty", "&cYour inventory must be empty (except armor) to race!");
+        plugin.getConfig().addDefault("messages.no-elytra", "&cYou must have an elytra equipped to race!");
+        plugin.getConfig().addDefault("messages.boundary-warning", "&c⚠ WARNING: You're going off-course! ({warnings}/3)");
+        plugin.getConfig().addDefault("messages.teleported-to-checkpoint", "&cYou went too far off-course! Teleported to last checkpoint.");
+        plugin.getConfig().addDefault("messages.auto-finish", "&eTime's up! Race automatically finished.");
+        plugin.getConfig().addDefault("messages.force-joined", "&aYou have been force-joined to the race by an admin!");
+        plugin.getConfig().addDefault("messages.test-mode-enabled", "&e⚠ Test mode enabled - stats will not be saved.");
+        plugin.getConfig().addDefault("messages.dependencies-missing", "&c⚠ WorldEdit/WorldGuard not found. Region import disabled.");
 
         plugin.getConfig().options().copyDefaults(true);
         plugin.saveConfig();
@@ -65,6 +107,81 @@ public class ConfigManager {
 
     public int getMaxTimeMinutes() {
         return plugin.getConfig().getInt("race.max-time-minutes", 30);
+    }
+    
+    // NEW: Feature 2
+    public int getRequiredRockets() {
+        return plugin.getConfig().getInt("race.required-rockets", 64);
+    }
+    
+    // NEW: Feature 10
+    public int getAutoFinishTime() {
+        return plugin.getConfig().getInt("race.auto-finish-time", 180);
+    }
+    
+    // NEW: Feature 3
+    public boolean isRegionImportEnabled() {
+        return plugin.getConfig().getBoolean("region-import.enabled", true);
+    }
+    
+    public String getRegionPrefix() {
+        return plugin.getConfig().getString("region-import.prefix", "ring");
+    }
+    
+    // NEW: Feature 9
+    public int getBoundaryDistance() {
+        return plugin.getConfig().getInt("anti-cheat.boundary-distance", 50);
+    }
+    
+    public boolean isTeleportOnExceed() {
+        return plugin.getConfig().getBoolean("anti-cheat.teleport-on-exceed", true);
+    }
+    
+    public int getWarningsBeforeTeleport() {
+        return plugin.getConfig().getInt("anti-cheat.warnings-before-teleport", 3);
+    }
+    
+    // NEW: Feature 7
+    public boolean isAutoSpectatorEnabled() {
+        return plugin.getConfig().getBoolean("spectator.auto-enable", true);
+    }
+    
+    public boolean isReturnToLobby() {
+        return plugin.getConfig().getBoolean("spectator.return-to-lobby", true);
+    }
+    
+    public int getSpectatorDelay() {
+        return plugin.getConfig().getInt("spectator.delay-seconds", 3);
+    }
+    
+    // NEW: Feature 4
+    public boolean isStartingPlatformEnabled() {
+        return plugin.getConfig().getBoolean("starting-platform.enabled", true);
+    }
+    
+    public String getPlatformMaterial() {
+        return plugin.getConfig().getString("starting-platform.material", "GLASS");
+    }
+    
+    public int getPlatformSize() {
+        return plugin.getConfig().getInt("starting-platform.size", 3);
+    }
+    
+    public int getPlatformHeightOffset() {
+        return plugin.getConfig().getInt("starting-platform.height-offset", -1);
+    }
+    
+    // NEW: Feature 8
+    public boolean isRingPreviewEnabled() {
+        return plugin.getConfig().getBoolean("ring-preview.enabled", true);
+    }
+    
+    public String getPreviewParticle() {
+        return plugin.getConfig().getString("ring-preview.particle", "VILLAGER_HAPPY");
+    }
+    
+    public int getPreviewParticleCount() {
+        return plugin.getConfig().getInt("ring-preview.particle-count", 20);
     }
 
     public Location getLobbyLocation() {
@@ -122,6 +239,11 @@ public class ConfigManager {
 
     public void removeRing(String ringName) {
         plugin.getConfig().set("rings." + ringName, null);
+        plugin.saveConfig();
+    }
+    
+    public void clearAllRings() {
+        plugin.getConfig().set("rings", null);
         plugin.saveConfig();
     }
 

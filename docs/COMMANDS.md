@@ -1,435 +1,650 @@
 # 📋 Commands Reference
 
-## Player Commands
+Complete command reference for ElytraRace v1.1.0
 
-### `/race help`
-Shows all available commands and their descriptions.
+---
 
-**Permission**: `elytrarace.player.*`
-**Usage**: `/race help [page]`
+## Table of Contents
+
+- [Player Commands](#-player-commands)
+- [Admin Commands](#-admin-commands)
+- [Setup Commands](#-setup-commands)
+- [Diagnostic Commands](#-diagnostic-commands)
+- [Permission Reference](#-permission-reference)
+- [Command Aliases](#-command-aliases)
+- [Usage Examples](#-usage-examples)
+
+---
+
+## 👤 Player Commands
+
+### `/er rules`
+Display comprehensive race rules and requirements.
+
+**Permission**: `race.use`  
+**Aliases**: `/race rules`, `/elytra rules`  
+**Usage**: `/er rules`
+
+**Shows**:
+- Ring navigation rules
+- Anti-cheat warnings
+- Disqualification conditions
+- Rocket limits
+- Time limits
+
+```
+Example output:
+╔══════ RACE RULES ══════╗
+║                        ║
+1. Fly through ALL rings in order
+2. Do NOT skip any rings
+3. Do NOT go backwards
+4. Max 64 rockets per race
+5. Time limit: 180 seconds
+║                        ║
+DISQUALIFICATION:
+• Skipping rings
+• 3+ rocket violations
+• Disconnecting mid-race
+╚════════════════════════╝
+```
+
+---
+
+### `/er join`
+**DEPRECATED** - Players now auto-join by entering start region.
+
+**Permission**: `race.use`  
+**Status**: ⚠️ Auto-join enabled by default
+
+Players automatically join when they walk into the start region. No command needed!
+
+---
+
+### `/ready`
+Toggle your ready status for race start.
+
+**Permission**: `race.use`  
+**Aliases**: None  
+**Usage**: `/ready`
+
+**Requirements**:
+- Must be in start region
+- Must have elytra equipped
+- Must have required rockets (default: 64)
+- Inventory must be empty (except armor)
+
+```
+Success: ✅ You are ready! Waiting for other players...
+Error:   ❌ You need 64 rockets to ready up! You have 32.
+Error:   ❌ You must have an elytra equipped!
+```
+
+---
+
+### `/er stats [player]`
+View race statistics for yourself or another player.
+
+**Permission**: `race.stats` (own), `race.admin` (others)  
+**Aliases**: `/race stats`, `/elytra stats`  
+**Usage**: 
+- `/er stats` - Your stats
+- `/er stats PlayerName` - Another player's stats
+
+```
+╔═══ YourName's Stats ═══╗
+║ Wins: 15               ║
+║ Total Races: 42        ║
+║ Best Time: 45.23s      ║
+║ Average Time: 52.18s   ║
+║ Win Rate: 35.7%        ║
+╚════════════════════════╝
+```
+
+---
+
+### `/er pb [player]`
+**NEW v1.1.0** - View personal best time.
+
+**Permission**: `race.use`  
+**Aliases**: `/race pb`, `/elytra personalbest`  
+**Usage**:
+- `/er pb` - Your personal best
+- `/er pb PlayerName` - Another player's PB
+
+```
+╔═══ Personal Best ═══╗
+║ Player: YourName    ║
+║ Best Time: 45.23s   ║
+║ Achieved: 3 days ago║
+║ Global Rank: #7     ║
+╚════════════════════════╝
+```
+
+---
+
+### `/er top`
+View the top 10 players on the leaderboard.
+
+**Permission**: `race.use`  
+**Aliases**: `/race leaderboard`, `/race board`  
+**Usage**: `/er top`
+
+```
+╔═══════ TOP 10 RACERS ═══════╗
+#1 ProRacer - 25 wins (42.15s best)
+#2 SpeedyFlyer - 23 wins (43.89s best)
+#3 WingMaster - 20 wins (44.22s best)
+...
+╚═════════════════════════════╝
+```
+
+---
+
+### `/er progress`
+Check your current race progress.
+
+**Permission**: `race.use`  
+**Aliases**: `/race status`  
+**Usage**: `/er progress`
+
+**Requirements**: Must be in an active race
+
+```
+╔═══ YOUR PROGRESS ═══╗
+║ Rings: 8/12         ║
+║ Time: 34.56s        ║
+║ Rockets Used: 2/3   ║
+╚═════════════════════╝
+```
+
+---
+
+### `/er timer`
+View the current race time.
+
+**Permission**: `race.use`  
+**Aliases**: `/race time`  
+**Usage**: `/er timer`
+
+**Requirements**: Must be in an active race
+
+```
+Response: [ElytraRace] Race Time: 02:15
+```
+
+---
+
+### `/er listrings`
+List all configured race rings.
+
+**Permission**: `race.use`  
+**Usage**: `/er listrings`
+
+```
+╔═══ Configured Rings ═══╗
+• ring1 - (100, 150, -50)
+• ring2 - (150, 160, -30)
+• ring3 - (200, 155, -10)
+Total: 3 ring(s)
+╚════════════════════════╝
+```
+
+---
+
+## 🔧 Admin Commands
+
+### `/er forcejoin <player>`
+**NEW v1.1.0** - Force teleport a player to the race lobby.
+
+**Permission**: `race.admin`  
+**Usage**: `/er forcejoin <player>`
+
+**Features**:
+- Teleports player to start region
+- Shows rules automatically
+- Validates lobby capacity
 
 ```
 Example:
-/race help
-/race help 2  # Show second page
+/er forcejoin SpeedyFlyer
+
+Success: ✅ Force-joined SpeedyFlyer to the race!
+Error:   ❌ Lobby is full!
 ```
 
 ---
 
-### `/race list`
-Lists all available races on the server.
+### `/er testmode`
+**NEW v1.1.0** - Toggle admin test mode.
 
-**Permission**: `elytrarace.player.list`
-**Usage**: `/race list [page]`
+**Permission**: `race.admin`  
+**Usage**: `/er testmode`
+
+**Features**:
+- Solo testing without affecting stats
+- Bypasses all requirements
+- Independent from normal races
+- Toggle on/off
+
+```
+Enabled:  ⚠ Test mode enabled - stats will not be saved.
+Disabled: ✅ Test mode ended.
+```
+
+---
+
+### `/er import rings`
+**NEW v1.1.0** - Import WorldGuard regions as race rings.
+
+**Permission**: `race.admin`  
+**Usage**: `/er import rings`
+
+**Requirements**:
+- WorldEdit installed
+- WorldGuard installed
+- Regions named `ring1`, `ring2`, `ring3`, etc.
+
+```
+Process:
+1. Create WorldGuard regions: ring1, ring2, ring3
+2. Run /er import rings
+3. Rings automatically imported and sorted
+
+Success: ✅ Successfully imported 12 ring(s)!
+Error:   ❌ WorldEdit/WorldGuard not found!
+```
+
+---
+
+### `/er preview`
+**NEW v1.1.0** - Toggle ring preview with particles.
+
+**Permission**: `race.admin`  
+**Usage**: `/er preview`
+
+**Features**:
+- Shows particle effects around rings
+- Admin-only visibility
+- Helps with course design
+- Toggle on/off
+
+```
+Enabled:  ✅ Ring preview enabled!
+Disabled: ❌ Ring preview disabled.
+```
+
+---
+
+### `/er platform <create|remove>`
+**NEW v1.1.0** - Manage starting platforms.
+
+**Permission**: `race.admin`  
+**Usage**: 
+- `/er platform create` - Create platform
+- `/er platform remove` - Remove platform
 
 ```
 Example:
-/race list
-/race list 2  # Show second page
-```
+/er platform create
 
-**Output**:
-```
-Available Races:
-1. SkyChallenge - Started: 12s ago - Players: 3/8
-2. MountainRush - Enabled - Players: 0/10
-3. NeonCircuit - Enabled - Players: 5/5
+Success: ✅ Created starting platform for 5 player(s)!
+Success: ✅ Removed starting platform!
 ```
 
 ---
 
-### `/race join <race>`
-Join an available race.
+### `/er start`
+Force start the race (bypasses ready checks).
 
-**Permission**: `elytrarace.player.join`
-**Usage**: `/race join <race_name>`
+**Permission**: `race.admin`  
+**Usage**: `/er start`
+
+**Requirements**: At least 1 player in start lobby
 
 ```
-Examples:
-/race join SkyChallenge
-/race join MountainRush
+Success: ✅ Force started race!
+Error:   ❌ Race already in progress!
 ```
-
-**Messages**:
-- ✅ `You have joined the race SkyChallenge!`
-- ❌ `Race is full! Cannot join.`
-- ❌ `Race not found: InvalidRace`
 
 ---
 
-### `/race leave`
-Leave your current race.
+### `/er reset`
+Reset the current active race.
 
-**Permission**: `elytrarace.player.join`
-**Usage**: `/race leave`
+**Permission**: `race.admin`  
+**Usage**: `/er reset`
+
+```
+Success: ✅ Race reset!
+```
+
+---
+
+## ⚙️ Setup Commands
+
+### `/er setup lobby`
+Set the lobby spawn location at your current position.
+
+**Permission**: `race.admin`  
+**Usage**: `/er setup lobby`
+
+```
+Success: ✅ Lobby set at X: 100 Y: 64 Z: -50
+```
+
+---
+
+### `/er setup start`
+Define the start region using WorldEdit selection.
+
+**Permission**: `race.admin`  
+**Usage**: `/er setup start`
+
+**Requirements**: 
+- WorldEdit installed
+- Active WorldEdit selection
+
+```
+Process:
+1. Make WorldEdit selection (/wand)
+2. Select start area
+3. Run /er setup start
+
+Success: ✅ Start region saved.
+Error:   ❌ You need a WorldEdit selection first.
+```
+
+---
+
+### `/er setup finish`
+Define the finish region using WorldEdit selection.
+
+**Permission**: `race.admin`  
+**Usage**: `/er setup finish`
+
+**Requirements**:
+- WorldEdit installed
+- Active WorldEdit selection
+
+```
+Success: ✅ Finish region saved.
+```
+
+---
+
+### `/er setup addring <name>`
+Add a ring at your current location.
+
+**Permission**: `race.admin`  
+**Usage**: `/er setup addring <ring_name>`
 
 ```
 Example:
-/race leave
-```
+/er setup addring ring1
 
-**Messages**:
-- ✅ `You left the race SkyChallenge`
-- ❌ `You are not in a race!`
+Success: ✅ Ring 'ring1' added at X: 150 Y: 100 Z: -30
+```
 
 ---
 
-### `/race start`
-Start a race (if you're the race owner).
+### `/er setup removering <name>`
+Remove a configured ring.
 
-**Permission**: `elytrarace.player.join`
-**Usage**: `/race start`
+**Permission**: `race.admin`  
+**Usage**: `/er setup removering <ring_name>`
 
 ```
 Example:
-/race start
-```
+/er setup removering ring1
 
-**Messages**:
-- ✅ `Starting race in 3, 2, 1...`
-- ❌ `You are not a race owner!`
-
----
-
-### `/race stats`
-View your personal race statistics.
-
-**Permission**: `elytrarace.player.stats`
-**Usage**: `/race stats [player]`
-
-```
-Examples:
-/race stats
-/race stats PlayerName  # Admin only - view other player's stats
-```
-
-**Stats Shown**:
-- Total races completed
-- Personal best times
-- Races won
-- Total distance traveled
-- Total playtime
-
----
-
-### `/race leaderboard`
-View the top players on the server.
-
-**Permission**: `elytrarace.player.leaderboard`
-**Usage**: `/race leaderboard [type] [page]`
-
-```
-Examples:
-/race leaderboard         # Overall leaderboard
-/race leaderboard wins    # By races won
-/race leaderboard best    # By best time
-/race leaderboard page 2  # Second page
-```
-
-**Types**:
-- `overall` - By races completed
-- `wins` - By races won
-- `best` - By fastest time
-- `distance` - By distance traveled
-
----
-
-## Admin Commands
-
-### `/race create <name>`
-Create a new race.
-
-**Permission**: `elytrarace.admin.create`
-**Usage**: `/race create <race_name> [max_players]`
-
-```
-Examples:
-/race create SkyChallenge
-/race create MountainRush 8  # Set max players to 8
-```
-
-**Messages**:
-- ✅ `Race SkyChallenge created! Use /race setstart to set start point.`
-- ❌ `Race already exists: SkyChallenge`
-
----
-
-### `/race delete <name>`
-Delete an existing race.
-
-**Permission**: `elytrarace.admin.delete`
-**Usage**: `/race delete <race_name>`
-
-```
-Example:
-/race delete OldRace
-```
-
-**Messages**:
-- ✅ `Race OldRace deleted successfully`
-- ❌ `Race not found: InvalidRace`
-
----
-
-### `/race setstart [race]`
-Set the start point of a race at your current location.
-
-**Permission**: `elytrarace.admin.setstart`
-**Usage**: `/race setstart [race_name]`
-
-```
-Examples:
-/race setstart                # Set for current race
-/race setstart SkyChallenge   # Set for specific race
-```
-
-**Messages**:
-- ✅ `Start point set for SkyChallenge at X: 100 Y: 150 Z: -50`
-- ❌ `Race not found!`
-
----
-
-### `/race setfinish [race]`
-Set the finish point of a race at your current location.
-
-**Permission**: `elytrarace.admin.setfinish`
-**Usage**: `/race setfinish [race_name]`
-
-```
-Examples:
-/race setfinish
-/race setfinish SkyChallenge
-```
-
-**Messages**:
-- ✅ `Finish point set for SkyChallenge at X: 200 Y: 120 Z: 100`
-- ❌ `Race not found!`
-
----
-
-### `/race checkpoint <name> [add|remove]`
-Add or remove checkpoints to a race (requires WorldEdit).
-
-**Permission**: `elytrarace.admin.checkpoint`
-**Usage**: `/race checkpoint <race_name> [add|remove]`
-
-```
-Examples:
-/race checkpoint SkyChallenge add     # Add checkpoint at current location
-/race checkpoint SkyChallenge remove  # Remove nearest checkpoint
-```
-
-**Messages**:
-- ✅ `Checkpoint added to SkyChallenge`
-- ❌ `WorldEdit not installed!`
-
----
-
-### `/race enable <name>`
-Enable a race so players can join.
-
-**Permission**: `elytrarace.admin.enable`
-**Usage**: `/race enable <race_name>`
-
-```
-Example:
-/race enable SkyChallenge
-```
-
-**Messages**:
-- ✅ `Race SkyChallenge enabled!`
-- ❌ `Race already enabled!`
-
----
-
-### `/race disable <name>`
-Disable a race so players cannot join.
-
-**Permission**: `elytrarace.admin.disable`
-**Usage**: `/race disable <race_name>`
-
-```
-Example:
-/race disable SkyChallenge
-```
-
-**Messages**:
-- ✅ `Race SkyChallenge disabled!`
-- ❌ `Race already disabled!`
-
----
-
-### `/race reload`
-Reload configuration files.
-
-**Permission**: `elytrarace.admin.reload`
-**Usage**: `/race reload`
-
-```
-Example:
-/race reload
-```
-
-**Messages**:
-- ✅ `Configuration reloaded successfully!`
-
----
-
-### `/race info <name>`
-Get detailed information about a race.
-
-**Permission**: `elytrarace.admin.info`
-**Usage**: `/race info <race_name>`
-
-```
-Example:
-/race info SkyChallenge
-```
-
-**Information Shown**:
-- Race status (enabled/disabled)
-- Max players
-- Current players
-- Start/Finish points
-- Number of checkpoints
-- Race difficulty
-
----
-
-### `/race reset <name>`
-Reset all statistics and data for a specific race.
-
-**Permission**: `elytrarace.admin.reset`
-**Usage**: `/race reset <race_name>`
-
-```
-Example:
-/race reset SkyChallenge
-```
-
-**Messages**:
-- ✅ `Race SkyChallenge statistics reset!`
-- ⚠️ `This action cannot be undone!`
-
----
-
-### `/race resetplayer <player>`
-Reset all statistics for a specific player.
-
-**Permission**: `elytrarace.admin.reset`
-**Usage**: `/race resetplayer <player_name>`
-
-```
-Example:
-/race resetplayer PlayerName
-```
-
-**Messages**:
-- ✅ `Statistics for PlayerName reset!`
-- ❌ `Player not found: InvalidPlayer`
-
----
-
-## Command Aliases
-
-All `/race` commands can be shortened:
-
-```bash
-/r help      # /race help
-/r join      # /race join
-/r leave     # /race leave
-/r list      # /race list
-/r stats     # /race stats
-/r board     # /race leaderboard
+Success: ✅ Ring 'ring1' removed.
+Error:   ❌ Ring not found: ring1
 ```
 
 ---
 
-## Permission Tree
+## 🔍 Diagnostic Commands
+
+### `/er reload`
+**PLANNED** - Reload plugin configuration.
+
+**Permission**: `race.admin`  
+**Status**: Coming in v1.2.0
+
+---
+
+### `/er debug`
+**PLANNED** - Toggle debug mode.
+
+**Permission**: `race.admin`  
+**Status**: Coming in v1.2.0
+
+---
+
+## 🔐 Permission Reference
+
+### Permission Hierarchy
 
 ```
 elytrarace.*                          # All permissions
-├── elytrarace.player.*               # All player commands
-│   ├── elytrarace.player.join        # Join races
-│   ├── elytrarace.player.list        # List races
-│   ├── elytrarace.player.stats       # View stats
-│   └── elytrarace.player.leaderboard # View leaderboard
-├── elytrarace.admin.*                # All admin commands
-│   ├── elytrarace.admin.create       # Create races
-│   ├── elytrarace.admin.delete       # Delete races
-│   ├── elytrarace.admin.setstart     # Set start point
-│   ├── elytrarace.admin.setfinish    # Set finish point
-│   ├── elytrarace.admin.enable       # Enable race
-│   ├── elytrarace.admin.disable      # Disable race
-│   ├── elytrarace.admin.reload       # Reload config
-│   ├── elytrarace.admin.info         # Get race info
-│   ├── elytrarace.admin.reset        # Reset race data
-│   └── elytrarace.admin.checkpoint   # Manage checkpoints
-└── elytrarace.bypasscooldown         # Bypass race cooldown
+├── race.use                          # Basic race participation
+│   ├── race.rules                    # View rules
+│   ├── race.stats                    # View own stats
+│   ├── race.top                      # View leaderboard
+│   ├── race.progress                 # View progress
+│   ├── race.timer                    # View timer
+│   └── race.pb                       # View personal best
+└── race.admin                        # Admin commands
+    ├── race.forcejoin                # Force join players
+    ├── race.testmode                 # Test mode
+    ├── race.import                   # Import regions
+    ├── race.preview                  # Ring preview
+    ├── race.platform                 # Platform management
+    ├── race.setup                    # Setup commands
+    ├── race.start                    # Force start
+    └── race.reset                    # Reset race
+```
+
+### Default Permissions
+
+| Permission | Default | Description |
+|-----------|---------|-------------|
+| `race.use` | `true` | Basic player commands |
+| `race.admin` | `op` | Admin commands |
+| `race.stats` | `true` | View statistics |
+| `race.top` | `true` | View leaderboard |
+
+### Permission Examples
+
+#### LuckPerms
+```bash
+# Give player basic access
+/lp user PlayerName permission set race.use true
+
+# Give admin access
+/lp user AdminName permission set race.admin true
+
+# Give group access
+/lp group default permission set race.use true
+/lp group admins permission set race.admin true
+```
+
+#### PermissionsEx
+```bash
+/pex user PlayerName add race.use
+/pex user AdminName add race.admin
+/pex group default add race.use
 ```
 
 ---
 
-## Command Examples
+## 🔄 Command Aliases
 
-### Creating Your First Race
+All `/er` commands can use alternative prefixes:
+
+| Primary | Aliases |
+|---------|---------|
+| `/er` | `/race`, `/elytra` |
+| `/ready` | None |
 
 ```bash
-# As admin/OP:
-/race create SkyRace 5          # Create race, max 5 players
-/race setstart SkyRace           # Stand at start, run command
-/race setfinish SkyRace          # Stand at finish, run command
-/race checkpoint SkyRace add     # (Optional) Add checkpoints
-/race enable SkyRace             # Enable race
+# These are equivalent:
+/er stats
+/race stats
+/elytra stats
 
-# Players can now:
-/race join SkyRace
-/race start                      # Race begins!
+# These work the same:
+/er top
+/race leaderboard
+/race board
 ```
 
-### Checking Race Info
+---
+
+## 📝 Usage Examples
+
+### Complete Setup Walkthrough
 
 ```bash
-/race info SkyRace               # See detailed race info
-/race list                       # See all races
-/race stats                      # See your performance
+# Step 1: Create race regions
+//wand                           # Get WorldEdit wand
+# Select start area with wand
+/er setup start                  # Define start region
+
+# Select finish area with wand
+/er setup finish                 # Define finish region
+
+# Step 2: Import or add rings
+/er import rings                 # Import from WorldGuard
+# OR manually add rings
+/er setup addring ring1
+/er setup addring ring2
+/er setup addring ring3
+
+# Step 3: Set lobby
+/er setup lobby                  # Stand where you want lobby
+
+# Step 4: Preview course
+/er preview                      # Toggle ring visualization
+
+# Step 5: Test
+/er testmode                     # Enter test mode
+# Fly through the course
+/er testmode                     # Exit test mode
 ```
 
-### Managing Races
+---
+
+### Running a Race
 
 ```bash
-/race disable SkyRace            # Disable race temporarily
-/race delete OldRace             # Remove race permanently
-/race reset SkyRace              # Clear race statistics
-/race reload                     # Reload all configs
+# Players:
+# 1. Walk into start region (auto-joins)
+# 2. Check rules
+/er rules
+
+# 3. Ready up when prepared
+/ready
+
+# 4. Race starts when all ready
+# 5. Check progress during race
+/er progress
+
+# 6. View results
+/er stats
+/er pb
 ```
 
 ---
 
-## Error Messages & Solutions
+### Admin Management
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Race not found` | Invalid race name | Use `/race list` to see available races |
-| `You don't have permission` | Missing permission | Contact admin or ask for permission |
-| `Race is full` | Max players reached | Wait for race to finish or join different race |
-| `You are not in a race` | Trying to leave when not joined | Use `/race join` first |
-| `Race already enabled` | Trying to enable enabled race | Use `/race disable` first to disable it |
+```bash
+# Force a player to join
+/er forcejoin SlowPlayer
+
+# Start race immediately (bypass ready)
+/er start
+
+# Reset if something goes wrong
+/er reset
+
+# Check ring configuration
+/er listrings
+
+# Preview course for validation
+/er preview
+```
 
 ---
 
-## Tips & Tricks
+## ❓ Common Issues
 
-1. **Tab Completion**: Type `/race` and press TAB to see available options
-2. **Bulk Commands**: Use WorldEdit with `/race checkpoint` for easier setup
-3. **Quick Join**: `/race join` + race name can be autocompleted
-4. **Check Performance**: `/race stats` to track your improvement
+### "You don't have permission"
+**Solution**: Admin needs to grant you `race.use` or `race.admin` permission
+
+```bash
+# LuckPerms
+/lp user YourName permission set race.use true
+```
 
 ---
 
-## Need Help?
+### "Race not found"
+**Solution**: Race hasn't been set up yet. Admin needs to:
+1. Define start region
+2. Define finish region
+3. Add rings
+4. Set lobby
 
-- 📖 See [INSTALLATION.md](INSTALLATION.md) for setup
-- 🔧 See [CONFIGURATION.md](CONFIGURATION.md) for advanced options
-- 🆘 See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
-- 💬 Ask in [Discussions](https://github.com/Kartik-Fulara/ElytraRace/discussions)
+---
+
+### "You need X rockets to ready up"
+**Solution**: Get more firework rockets in your inventory
+
+```bash
+/give @s firework_rocket 64
+```
+
+---
+
+### "WorldEdit/WorldGuard not found"
+**Solution**: Install required plugins:
+1. Download WorldEdit from [EngineHub](https://enginehub.org/worldedit)
+2. Download WorldGuard from [EngineHub](https://enginehub.org/worldguard)
+3. Place in `plugins/` folder
+4. Restart server
+
+---
+
+## 📚 Additional Resources
+
+- **[Configuration Guide](CONFIGURATION.md)** - Customize settings
+- **[Installation Guide](INSTALLATION.md)** - Setup instructions
+- **[WorldEdit Integration](WORLDEDIT.md)** - Region setup guide
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common problems
+
+---
+
+## 💡 Tips & Tricks
+
+1. **Tab Completion**: Press TAB after `/er` to see available commands
+2. **Quick Stats**: `/er stats` shows your stats instantly
+3. **Course Testing**: Use `/er testmode` to test without affecting stats
+4. **Visual Validation**: Use `/er preview` to verify ring placement
+5. **Batch Import**: Create WorldGuard regions then use `/er import rings`
+
+---
+
+## 🆘 Need Help?
+
+- 💬 [Discord Support](https://discord.gg/YOUR_INVITE)
+- 📖 [Full Documentation](https://github.com/Kartik-Fulara/ElytraRace/wiki)
+- 🐛 [Report Issues](https://github.com/Kartik-Fulara/ElytraRace/issues)
+- 📧 Email: kartikfulara2003@gmail.com
+
+---
+
+**Last Updated**: v1.1.0  
+**Maintained By**: Kartik Fulara

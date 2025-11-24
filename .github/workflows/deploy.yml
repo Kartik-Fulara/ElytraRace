@@ -7,9 +7,15 @@ on:
       - completed
     branches:
       - main
-      - master
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.1)'
+        required: true
+        type: string
       deploy_modrinth:
         description: 'Deploy to Modrinth'
         required: true
@@ -20,10 +26,6 @@ on:
         required: true
         type: boolean
         default: true
-      version:
-        description: 'Version (leave empty to use tag)'
-        required: false
-        type: string
 
 permissions:
   contents: write
@@ -33,7 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
     outputs:
       jar_path: ${{ steps.plugin_info.outputs.jar_path }}
       jar_name: ${{ steps.plugin_info.outputs.jar_name }}
@@ -63,19 +66,16 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             VERSION="${{ github.event.inputs.version }}"
-          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            # Extract version from tag name in the branch
-            BRANCH="${{ github.event.workflow_run.head_branch }}"
-            if [[ "$BRANCH" == v* ]]; then
-              VERSION="${BRANCH#v}"
-            else
-              VERSION=$(date +'%Y.%m.%d-%H%M%S')
-            fi
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            VERSION="${{ github.ref_name }}"
           else
-            VERSION=$(date +'%Y.%m.%d-%H%M%S')
+            # For workflow_run, get version from the latest tag
+            VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "dev-$(date +'%Y.%m.%d')")
           fi
+          # Remove 'v' prefix if present
+          VERSION="${VERSION#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
       
@@ -84,12 +84,16 @@ jobs:
         with:
           name: plugin-release
           path: ${{ steps.plugin_info.outputs.jar_path }}
-          retention-days: 90
+          retention-days: 5
           if-no-files-found: error
 
   deploy-github:
     needs: build
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_run' ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
     
     steps:
       - name: Checkout code
@@ -101,17 +105,27 @@ jobs:
           name: plugin-release
           path: ./release
       
+      - name: Delete existing release if it exists
+        run: |
+          if gh release view "v${{ needs.build.outputs.version }}" >/dev/null 2>&1; then
+            echo "Deleting existing release v${{ needs.build.outputs.version }}"
+            gh release delete "v${{ needs.build.outputs.version }}" --yes
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ./release/*.jar
           tag_name: v${{ needs.build.outputs.version }}
-          name: Release ${{ needs.build.outputs.version }}
+          name: Release v${{ needs.build.outputs.version }}
           draft: false
           prerelease: false
           generate_release_notes: true
           body: |
-            ## 🎉 Release ${{ needs.build.outputs.version }}
+            ## 🎉 Release v${{ needs.build.outputs.version }}
             
             Download the plugin JAR file below and place it in your server's `plugins` folder.
             
@@ -129,8 +143,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_modrinth == 'true') ||
-      github.event_name == 'workflow_run'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_run' ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
     
     steps:
       - name: Checkout code
@@ -169,7 +184,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_spigot == 'true') ||
-      github.event_name == 'workflow_run'
+      github.event_name == 'workflow_run' ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
     
     steps:
       - name: Checkout code
@@ -198,7 +214,7 @@ jobs:
         run: |
           echo "## 🚀 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Plugin:** ${{ needs.build.outputs.jar_name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployment Status" >> $GITHUB_STEP_SUMMARY

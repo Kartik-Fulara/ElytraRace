@@ -1,5 +1,5 @@
 ############################################################
-#              ELYTRA RACE CONFIGURATION
+#              ELYTRA RACE CONFIGURATION v1.1.0
 ############################################################
 
 race:
@@ -9,24 +9,102 @@ race:
   # Maximum players allowed inside START region
   max-players: 5
 
-  # 1 step = 0.5 seconds (10 ticks)
+  # Countdown step duration in ticks (10 ticks = 0.5 seconds)
   countdown-step-ticks: 10
+  
+  # NEW v1.1.0: Required number of rockets to ready up
+  required-rockets: 64
+  
+  # NEW v1.1.0: Auto-finish time in seconds (race ends automatically)
+  auto-finish-time: 180
+  
+  # Maximum race time in minutes (for manual tracking)
+  max-time-minutes: 30
+
+
+############################################################
+#            NEW v1.1.0: REGION IMPORT SETTINGS
+############################################################
+region-import:
+  # Enable automatic region import from WorldGuard
+  enabled: true
+  
+  # Region name prefix to detect (e.g., ring1, ring2, ring3)
+  prefix: "ring"
+  
+  # Auto-detect and import on startup
+  auto-detect: true
+
+
+############################################################
+#         NEW v1.1.0: ANTI-CHEAT BOUNDARY SYSTEM
+############################################################
+anti-cheat:
+  # Distance in blocks from last checkpoint before warning
+  boundary-distance: 50
+  
+  # Teleport player back after exceeding boundary
+  teleport-on-exceed: true
+  
+  # Number of warnings before teleporting
+  warnings-before-teleport: 3
+
+
+############################################################
+#          NEW v1.1.0: AUTO-SPECTATOR SETTINGS
+############################################################
+spectator:
+  # Automatically enable spectator mode after finishing
+  auto-enable: true
+  
+  # Return to lobby when race ends
+  return-to-lobby: true
+  
+  # Delay in seconds before enabling spectator mode
+  delay-seconds: 3
+
+
+############################################################
+#          NEW v1.1.0: STARTING PLATFORM SYSTEM
+############################################################
+starting-platform:
+  # Enable starting platform creation
+  enabled: true
+  
+  # Block material for platform (e.g., GLASS, STONE, IRON_BLOCK)
+  material: "GLASS"
+  
+  # Platform radius (blocks from player center)
+  size: 3
+  
+  # Height offset below players (-1 = 1 block below feet)
+  height-offset: -1
+
+
+############################################################
+#           NEW v1.1.0: RING PREVIEW SYSTEM
+############################################################
+ring-preview:
+  # Enable ring preview particles for admins
+  enabled: true
+  
+  # Particle effect type (see Bukkit Particle enum)
+  particle: "VILLAGER_HAPPY"
+  
+  # Number of particles per ring
+  particle-count: 20
 
 
 ############################################################
 #                     REGION SETTINGS
 ############################################################
 # Set regions using:
-# /er setup setregion lobby
-# /er setup setregion start
-# /er setup setregion finish
+# /er setup lobby
+# /er setup start (with WorldEdit selection)
+# /er setup finish (with WorldEdit selection)
 #
-# Regions will be saved like:
-# regions:
-#   lobby:
-#     world: world
-#     min: {x: 0, y: 0, z: 0}
-#     max: {x: 10, y: 10, z: 10}
+# Or use NEW v1.1.0 feature:
+# /er import rings (imports from WorldGuard)
 ############################################################
 
 regions: {}
@@ -35,8 +113,11 @@ regions: {}
 ############################################################
 #                        RINGS
 ############################################################
-# Add rings using:
+# Add rings manually:
 # /er setup addring <name>
+#
+# Or NEW v1.1.0: Import from WorldGuard
+# /er import rings
 ############################################################
 
 rings: {}
@@ -50,26 +131,85 @@ messages:
 
   prefix: "&6[ElytraRace] &f"
 
-  # Player enters start area (x/5)
-  enter-start: "&e{player} &ahas entered the start area! (&e{count}&a/5)"
-
-  # Player leaves start area
-  leave-start: "&e{player} &chas left the start area! (&e{count}&c/5)"
-
-  # Player pressed ready
-  ready: "&e{player} &ais READY! (&e{ready}&a/{total})"
-
-  # Player unready
-  unready: "&e{player} &cis NOT READY! (&e{ready}&c/{total})"
-
-  # Countdown interrupted
-  countdown-stop: "&cCountdown stopped — a player is not ready."
-
-  # Race begins after GO
+  # === Race Messages ===
   race-start: "&aRace begins NOW!"
-
-  # Player tries to finish without passing rings
+  race-started: "&aThe race has started! Fly through all the rings!"
+  race-finished: "&aYou finished in &e{time}&a seconds!"
+  
+  # === Ring Messages ===
+  ring-passed: "&aRing &e{ring}&a passed! (&e{current}&a/&e{total}&a)"
   finish-warning: "&cYou must pass all rings before finishing!"
-
-  # No permission
+  
+  # === Lobby Messages ===
+  enter-start: "&e{player} &ahas entered the start area! (&e{count}&a/{max})"
+  leave-start: "&e{player} &chas left the start area! (&e{count}&c/{max})"
+  
+  # === Ready Messages ===
+  ready: "&e{player} &ais READY! (&e{ready}&a/{total})"
+  ready-up: "&aYou are ready! Waiting for other players..."
+  unready: "&e{player} &cis NOT READY! (&e{ready}&c/{total})"
+  already-ready: "&cYou are already ready!"
+  
+  # === Countdown Messages ===
+  countdown: "&eRace starting in &c{seconds}&e seconds!"
+  countdown-stop: "&cCountdown stopped – a player is not ready."
+  
+  # === Error Messages ===
+  not-enough-players: "&cNot enough players to start! Need at least {min} players."
+  lobby-full: "&cThe lobby is full!"
   no-permission: "&cYou do not have permission for this command."
+  
+  # === NEW v1.1.0: Validation Messages ===
+  insufficient-rockets: "&cYou need &e{required} &crockets to ready up! You have &e{current}&c."
+  inventory-not-empty: "&cYour inventory must be empty (except armor) to race!"
+  no-elytra: "&cYou must have an elytra equipped in your chestplate slot!"
+  
+  # === NEW v1.1.0: Boundary Messages ===
+  boundary-warning: "&c⚠ WARNING: You're going off-course! ({warnings}/3)"
+  teleported-to-checkpoint: "&cYou went too far off-course! Teleported to last checkpoint."
+  
+  # === NEW v1.1.0: Feature Messages ===
+  auto-finish: "&eTime's up! Race automatically finished."
+  force-joined: "&aYou have been force-joined to the race by an admin!"
+  test-mode-enabled: "&e⚠ Test mode enabled - your stats will not be saved."
+  dependencies-missing: "&c⚠ WorldEdit/WorldGuard not found. Region import features disabled."
+
+
+############################################################
+#                   PERFORMANCE TUNING
+############################################################
+# Advanced settings - only change if you know what you're doing!
+
+performance:
+  # Region check interval in milliseconds
+  region-check-interval: 250
+  
+  # Boundary check interval in milliseconds
+  boundary-check-interval: 500
+  
+  # Ring detection radius in blocks
+  ring-detection-radius: 5.0
+
+
+############################################################
+#                    NOTES & HELP
+############################################################
+# 
+# For full documentation, visit:
+# https://github.com/yourusername/ElytraRace/wiki
+#
+# NEW v1.1.0 Features:
+# • Force Join System - /er forcejoin <player>
+# • Region Import - /er import rings
+# • Starting Platform - Auto-creates on countdown
+# • Test Mode - /er testmode (admin testing)
+# • Personal Bests - /er pb [player]
+# • Auto-Spectator - Automatic after finishing
+# • Ring Preview - /er preview (admin only)
+# • Boundary System - Prevents going off-course
+# • Auto-Finish Timer - Automatic race end
+# • Rocket Requirements - Configurable validation
+#
+# Report issues: https://github.com/yourusername/ElytraRace/issues
+#
+############################################################

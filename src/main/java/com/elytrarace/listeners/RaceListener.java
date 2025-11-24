@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2025 Kartik Fulara
  * 
@@ -14,7 +13,6 @@ import com.elytrarace.ElytraRacePlugin;
 import com.elytrarace.managers.RegionManager;
 import com.elytrarace.managers.RaceManager;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -28,14 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * HEAVILY OPTIMIZED RaceListener
- * 
- * KEY OPTIMIZATIONS:
- * 1. Only check movement if player actually MOVED (not just head turn)
- * 2. Cache region checks (only check every 5 ticks)
- * 3. Only check rings for racing players
- * 4. Pre-compute ring locations squared distance
- * 5. Track rocket usage
+ * HEAVILY OPTIMIZED RaceListener with Feature 9: Boundary checking
  */
 public class RaceListener implements Listener {
 
@@ -50,11 +41,17 @@ public class RaceListener implements Listener {
     private final Map<UUID, Boolean> inStartCache = new HashMap<>();
     private final Map<UUID, Long> lastRegionCheck = new HashMap<>();
     
+    // NEW: Feature 9 - Boundary check timing
+    private final Map<UUID, Long> lastBoundaryCheck = new HashMap<>();
+    
     // OPTIMIZATION: Pre-compute squared distances for rings
     private final Map<String, RingData> ringDataCache = new HashMap<>();
     
     // Check regions only every 250ms (5 ticks) instead of every tick
     private static final long REGION_CHECK_INTERVAL = 250;
+    
+    // NEW: Feature 9 - Boundary check every 500ms
+    private static final long BOUNDARY_CHECK_INTERVAL = 500;
     
     // Ring detection radius
     private static final double RING_DETECTION_RADIUS = 5.0;
@@ -110,6 +107,15 @@ public class RaceListener implements Listener {
         // OPTIMIZATION 3: Only check rings if player is actively racing
         if (raceManager.isRacing() && raceManager.getRacePlayers().containsKey(uuid)) {
             checkRings(player, uuid, to);
+        }
+        
+        // NEW: Feature 9 - Boundary checking (only every 500ms)
+        Long lastBoundaryCheckTime = lastBoundaryCheck.get(uuid);
+        if ((lastBoundaryCheckTime == null || (now - lastBoundaryCheckTime) > BOUNDARY_CHECK_INTERVAL)
+                && raceManager.isRacing() 
+                && raceManager.getRacePlayers().containsKey(uuid)) {
+            lastBoundaryCheck.put(uuid, now);
+            raceManager.checkPlayerBoundary(player);
         }
     }
 
@@ -197,6 +203,7 @@ public class RaceListener implements Listener {
         lastCheckedLocation.remove(uuid);
         inStartCache.remove(uuid);
         lastRegionCheck.remove(uuid);
+        lastBoundaryCheck.remove(uuid); // NEW
         
         // Handle race disconnect
         if (raceManager.isPlayerInStart(player)) {
