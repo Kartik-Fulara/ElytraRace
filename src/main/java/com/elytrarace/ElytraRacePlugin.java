@@ -26,11 +26,11 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Main plugin class for ElytraRace.
+ * Main plugin class for ElytraRace v1.1.0
  * Handles initialization, command registration, and manager lifecycle.
  * 
- * @author [Your Name]
- * @version 1.0.0
+ * @author Kartik Fulara
+ * @version 1.1.0
  */
 public class ElytraRacePlugin extends JavaPlugin {
 
@@ -42,6 +42,7 @@ public class ElytraRacePlugin extends JavaPlugin {
     private WorldEditHelper worldEditHelper;
     private TimerHelper timerHelper;
     private RegionManager regionManager;
+    private RaceListener raceListener;
 
     private File statsFile;
     private FileConfiguration statsConfig;
@@ -60,6 +61,36 @@ public class ElytraRacePlugin extends JavaPlugin {
         instance = this;
 
         try {
+            // ============ DEPENDENCY CHECK ============
+            getLogger().info("╔═══════════════════════════════════════╗");
+            getLogger().info("║   Checking Dependencies...            ║");
+            getLogger().info("╚═══════════════════════════════════════╝");
+            
+            boolean worldEditFound = checkDependency("WorldEdit");
+            boolean worldGuardFound = checkDependency("WorldGuard");
+            
+            if (!worldEditFound || !worldGuardFound) {
+                getLogger().warning("╔═══════════════════════════════════════╗");
+                getLogger().warning("║   ⚠️  MISSING DEPENDENCIES            ║");
+                getLogger().warning("╠═══════════════════════════════════════╣");
+                if (!worldEditFound) {
+                    getLogger().warning("║   ❌ WorldEdit: NOT FOUND             ║");
+                }
+                if (!worldGuardFound) {
+                    getLogger().warning("║   ❌ WorldGuard: NOT FOUND            ║");
+                }
+                getLogger().warning("╠═══════════════════════════════════════╣");
+                getLogger().warning("║   Region import features DISABLED     ║");
+                getLogger().warning("║   Manual ring setup still works       ║");
+                getLogger().warning("║                                       ║");
+                getLogger().warning("║   Download from:                      ║");
+                getLogger().warning("║   https://enginehub.org/worldedit     ║");
+                getLogger().warning("║   https://enginehub.org/worldguard    ║");
+                getLogger().warning("╚═══════════════════════════════════════╝");
+            }
+            
+            // ============ END DEPENDENCY CHECK ============
+
             // Load default configuration
             saveDefaultConfig();
 
@@ -80,10 +111,22 @@ public class ElytraRacePlugin extends JavaPlugin {
             // Register event listeners
             registerListeners();
 
-            getLogger().info("╔════════════════════════════════════╗");
+            getLogger().info("╔═══════════════════════════════════════╗");
             getLogger().info("║   ElytraRace v" + getDescription().getVersion() + " enabled!        ║");
-            getLogger().info("║   Ready for elytra racing!         ║");
-            getLogger().info("╚════════════════════════════════════╝");
+            getLogger().info("║   Ready for elytra racing!            ║");
+            getLogger().info("║                                       ║");
+            getLogger().info("║   NEW FEATURES:                       ║");
+            getLogger().info("║   • Force Join System                 ║");
+            getLogger().info("║   • Region Import (WorldGuard)        ║");
+            getLogger().info("║   • Starting Platform                 ║");
+            getLogger().info("║   • Admin Test Mode                   ║");
+            getLogger().info("║   • Personal Best Tracking            ║");
+            getLogger().info("║   • Auto-Spectator Mode               ║");
+            getLogger().info("║   • Ring Preview                      ║");
+            getLogger().info("║   • Anti-Cheat Boundary               ║");
+            getLogger().info("║   • Auto-Finish Timer                 ║");
+            getLogger().info("║   • Rocket Requirements               ║");
+            getLogger().info("╚═══════════════════════════════════════╝");
 
         } catch (Exception e) {
             getLogger().severe("Failed to enable ElytraRace!");
@@ -105,7 +148,7 @@ public class ElytraRacePlugin extends JavaPlugin {
                 statsManager.saveStats();
             }
 
-            getLogger().info("ElytraRace disabled successfully.");
+            getLogger().info("ElytraRace v" + getDescription().getVersion() + " disabled successfully.");
         } catch (Exception e) {
             getLogger().severe("Error during plugin shutdown!");
             e.printStackTrace();
@@ -113,11 +156,39 @@ public class ElytraRacePlugin extends JavaPlugin {
     }
 
     /**
+     * Checks if a plugin dependency is loaded
+     * 
+     * @param pluginName Name of the plugin to check
+     * @return true if plugin is loaded, false otherwise
+     */
+    private boolean checkDependency(String pluginName) {
+        boolean found = getServer().getPluginManager().getPlugin(pluginName) != null;
+        if (found) {
+            getLogger().info("  ✅ " + pluginName + ": FOUND");
+        } else {
+            getLogger().warning("  ❌ " + pluginName + ": NOT FOUND");
+        }
+        return found;
+    }
+
+    /**
+     * Checks if WorldEdit and WorldGuard are both available
+     * 
+     * @return true if both plugins are loaded
+     */
+    public boolean areRegionDependenciesAvailable() {
+        return getServer().getPluginManager().getPlugin("WorldEdit") != null &&
+               getServer().getPluginManager().getPlugin("WorldGuard") != null;
+    }
+
+    /**
      * Registers all plugin commands.
      */
     private void registerCommands() {
         if (getCommand("er") != null) {
-            getCommand("er").setExecutor(new RaceCommand(this));
+            RaceCommand raceCommand = new RaceCommand(this);
+            getCommand("er").setExecutor(raceCommand);
+            getCommand("er").setTabCompleter(raceCommand);
         } else {
             getLogger().warning("Command 'er' not found in plugin.yml!");
         }
@@ -133,7 +204,8 @@ public class ElytraRacePlugin extends JavaPlugin {
      * Registers all event listeners.
      */
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new RaceListener(this), this);
+        raceListener = new RaceListener(this);
+        getServer().getPluginManager().registerEvents(raceListener, this);
         getLogger().info("Event listeners registered.");
     }
 
@@ -241,6 +313,15 @@ public class ElytraRacePlugin extends JavaPlugin {
      */
     public RegionManager getRegionManager() {
         return regionManager;
+    }
+
+    /**
+     * Gets the RaceListener instance.
+     * 
+     * @return The RaceListener
+     */
+    public RaceListener getRaceListener() {
+        return raceListener;
     }
 
     /**
