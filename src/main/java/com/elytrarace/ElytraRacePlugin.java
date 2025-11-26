@@ -94,16 +94,18 @@ public class ElytraRacePlugin extends JavaPlugin {
             // Load default configuration
             saveDefaultConfig();
 
-            // Initialize managers
+            // FIX: Setup stats file BEFORE initializing managers
+            setupStatsFile();
+
+            // Initialize managers in correct order
             configManager = new ConfigManager(this);
             statsManager = new StatsManager(this);
-            raceManager = new RaceManager(this);
             regionManager = new RegionManager(this);
             timerHelper = new TimerHelper(this);
             worldEditHelper = new WorldEditHelper(this);
-
-            // Setup stats file
-            setupStatsFile();
+            
+            // RaceManager depends on statsConfig being ready
+            raceManager = new RaceManager(this);
 
             // Register commands
             registerCommands();
@@ -212,6 +214,8 @@ public class ElytraRacePlugin extends JavaPlugin {
     /**
      * Sets up the stats configuration file.
      * Creates the file if it doesn't exist.
+     * 
+     * FIX: This must be called BEFORE initializing RaceManager
      */
     private void setupStatsFile() {
         if (!getDataFolder().exists()) {
@@ -237,6 +241,7 @@ public class ElytraRacePlugin extends JavaPlugin {
 
         try {
             statsConfig = YamlConfiguration.loadConfiguration(statsFile);
+            getLogger().info("Loaded stats.yml configuration.");
         } catch (Exception e) {
             getLogger().severe("Failed to load stats.yml!");
             e.printStackTrace();

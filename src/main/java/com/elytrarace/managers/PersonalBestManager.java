@@ -12,6 +12,7 @@ package com.elytrarace.managers;
 import com.elytrarace.ElytraRacePlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.*;
@@ -35,11 +36,22 @@ public class PersonalBestManager {
      */
     private void loadAllPersonalBests() {
         FileConfiguration config = plugin.getStatsConfig();
-        if (config.getConfigurationSection("players") == null) {
+        
+        // FIX: Check if config is null before using it
+        if (config == null) {
+            plugin.getLogger().warning("Stats config is null, skipping personal best loading");
+            return;
+        }
+        
+        ConfigurationSection playersSection = config.getConfigurationSection("players");
+        
+        // FIX: Check if section exists before iterating
+        if (playersSection == null) {
+            plugin.getLogger().info("No players section found in stats.yml");
             return;
         }
 
-        for (String uuidStr : config.getConfigurationSection("players").getKeys(false)) {
+        for (String uuidStr : playersSection.getKeys(false)) {
             try {
                 UUID uuid = UUID.fromString(uuidStr);
                 double bestTime = config.getDouble("players." + uuidStr + ".best-time", 0.0);
@@ -76,16 +88,20 @@ public class PersonalBestManager {
             cache.put(uuid, newBest);
             
             // Save to config
-            String path = "players." + uuid.toString();
-            plugin.getStatsConfig().set(path + ".best-time", time);
-            plugin.getStatsConfig().set(path + ".best-time-date", newBest.achievedAt);
-            
-            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-            plugin.getStatsConfig().set(path + ".name", player.getName());
-            
-            plugin.saveStatsConfig();
+            FileConfiguration config = plugin.getStatsConfig();
+            if (config != null) {
+                String path = "players." + uuid.toString();
+                config.set(path + ".best-time", time);
+                config.set(path + ".best-time-date", newBest.achievedAt);
+                
+                OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
+                config.set(path + ".name", player.getName());
+                
+                plugin.saveStatsConfig();
+            }
             
             // Announce if player is online
+            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
             if (player.isOnline() && player.getPlayer() != null) {
                 if (previousBest > 0) {
                     double improvement = previousBest - time;
