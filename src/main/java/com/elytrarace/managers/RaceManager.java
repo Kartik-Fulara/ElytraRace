@@ -175,25 +175,24 @@ public class RaceManager {
             return false;
         }
 
-        // Check inventory (must be empty except armor)
-        int itemCount = 0;
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (item != null && item.getType() != Material.AIR) {
-                itemCount++;
-            }
-        }
-        
-        // Count rockets
+        // Check inventory: only firework rockets are allowed in main slots + offhand
         int rocketCount = 0;
         for (ItemStack item : player.getInventory().getContents()) {
-            if (item != null && item.getType() == Material.FIREWORK_ROCKET) {
+            if (item == null || item.getType() == Material.AIR) continue;
+            if (item.getType() == Material.FIREWORK_ROCKET) {
                 rocketCount += item.getAmount();
+            } else {
+                player.sendMessage(cfg.getPrefix() + cfg.getMessage("inventory-not-empty"));
+                return false;
             }
         }
 
-        // Check if only rockets and armor
-        if (itemCount > 0) {
-            if (rocketCount != itemCount) {
+        // Also check offhand slot
+        ItemStack offhand = player.getInventory().getItemInOffHand();
+        if (offhand != null && offhand.getType() != Material.AIR) {
+            if (offhand.getType() == Material.FIREWORK_ROCKET) {
+                rocketCount += offhand.getAmount();
+            } else {
                 player.sendMessage(cfg.getPrefix() + cfg.getMessage("inventory-not-empty"));
                 return false;
             }
