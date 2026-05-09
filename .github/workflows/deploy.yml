@@ -9,29 +9,67 @@ on:
       - main
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v1.0.1)'
+        description: "Version tag (e.g., v1.0.1)"
         required: true
         type: string
       deploy_modrinth:
-        description: 'Deploy to Modrinth'
+        description: "Deploy to Modrinth"
         required: true
         type: boolean
-        default: true
+        default: false
       deploy_spigot:
-        description: 'Deploy to SpigotMC'
-        required: true
+        description: "Deploy to SpigotMC"
+        required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
 
 jobs:
+  # ── CHECK SECRETS ──────────────────────────────────────────────────────────
+  # Runs first. Checks which platform secrets are present so downstream
+  # deploy jobs can skip cleanly instead of failing with auth errors.
+  # NOTE: GitHub does not allow secrets.X in job-level `if` blocks directly,
+  # so we expose them as env vars inside a run step and emit outputs.
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      has_modrinth: ${{ steps.check.outputs.has_modrinth }}
+      has_spigot: ${{ steps.check.outputs.has_spigot }}
+
+    steps:
+      - name: Check required secrets
+        id: check
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+          SPIGOT_API_KEY: ${{ secrets.SPIGOT_API_KEY }}
+          SPIGOT_RESOURCE_ID: ${{ secrets.SPIGOT_RESOURCE_ID }}
+        run: |
+          if [ -n "$MODRINTH_TOKEN" ] && [ -n "$MODRINTH_PROJECT_ID" ]; then
+            echo "has_modrinth=true"  >> $GITHUB_OUTPUT
+            echo "✅ Modrinth secrets found"
+          else
+            echo "has_modrinth=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Modrinth secrets missing (MODRINTH_TOKEN / MODRINTH_PROJECT_ID) — skipping Modrinth deploy"
+          fi
+
+          if [ -n "$SPIGOT_API_KEY" ] && [ -n "$SPIGOT_RESOURCE_ID" ]; then
+            echo "has_spigot=true"  >> $GITHUB_OUTPUT
+            echo "✅ SpigotMC secrets found"
+          else
+            echo "has_spigot=false" >> $GITHUB_OUTPUT
+            echo "⚠️  SpigotMC secrets missing (SPIGOT_API_KEY / SPIGOT_RESOURCE_ID) — skipping SpigotMC deploy"
+          fi
+
+  # ── BUILD ──────────────────────────────────────────────────────────────────
   build:
+    needs: check-secrets
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -41,28 +79,30 @@ jobs:
       jar_path: ${{ steps.plugin_info.outputs.jar_path }}
       jar_name: ${{ steps.plugin_info.outputs.jar_name }}
       version: ${{ steps.version.outputs.version }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          fetch-depth: 0 # FIX: full history so git describe can find tags
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-      
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
       - name: Build with Maven
         run: mvn clean package -DskipTests
-      
+
       - name: Get plugin info
         id: plugin_info
         run: |
           JAR_FILE=$(ls target/*.jar | grep -v "original" | head -n 1)
-          echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
-          echo "jar_name=$(basename $JAR_FILE)" >> $GITHUB_OUTPUT
-      
+          echo "jar_path=$JAR_FILE"             >> $GITHUB_OUTPUT
+          echo "jar_name=$(basename $JAR_FILE)"  >> $GITHUB_OUTPUT
+
       - name: Extract version
         id: version
         run: |
@@ -71,14 +111,15 @@ jobs:
           elif [[ "${{ github.event_name }}" == "push" ]]; then
             VERSION="${{ github.ref_name }}"
           else
-            # For workflow_run, get version from the latest tag
-            VERSION=$(git describe --tags --always 2>/dev/null | sed 's/^v//' || echo "dev-$(date +'%Y.%m.%d')")
+            # FIX: fetch all tags explicitly before describing
+            git fetch --tags --force
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(date +'%Y.%m.%d')")
           fi
-          # Remove 'v' prefix if present
+          # Strip leading 'v' so Modrinth/Spigot get a clean semver
           VERSION="${VERSION#v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
-      
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -87,24 +128,28 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+  # ── DEPLOY: GITHUB RELEASE ─────────────────────────────────────────────────
+  # GitHub release always runs (GITHUB_TOKEN is always available).
   deploy-github:
-    needs: build
+    needs: [check-secrets, build]
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'workflow_run' ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          fetch-depth: 0
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: plugin-release
           path: ./release
-      
+
       - name: Delete existing release if it exists
         run: |
           if gh release view "v${{ needs.build.outputs.version }}" >/dev/null 2>&1; then
@@ -114,7 +159,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-      
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -126,77 +171,85 @@ jobs:
           generate_release_notes: true
           body: |
             ## 🎉 Release v${{ needs.build.outputs.version }}
-            
+
             Download the plugin JAR file below and place it in your server's `plugins` folder.
-            
+
             ### Installation
             1. Download `${{ needs.build.outputs.jar_name }}`
             2. Stop your server
             3. Place the JAR in your `plugins` folder
             4. Start your server
-            
+
             See the full changelog below.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ── DEPLOY: MODRINTH ───────────────────────────────────────────────────────
+  # Skipped automatically when MODRINTH_TOKEN or MODRINTH_PROJECT_ID is absent.
   deploy-modrinth:
-    needs: build
+    needs: [check-secrets, build]
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'workflow_run' ||
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
-    
+      needs.check-secrets.outputs.has_modrinth == 'true' && (
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_modrinth == 'true') ||
+        (github.event_name == 'workflow_run' && needs.build.result == 'success') ||
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+      )
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: plugin-release
           path: ./release
-      
+
       - name: Deploy to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          
+
           files: ./release/*.jar
-          
-          name: ${{ needs.build.outputs.jar_name }}
+
+          name: ElytraRace v${{ needs.build.outputs.version }}
           version: ${{ needs.build.outputs.version }}
           version-type: release
-          
+
           loaders: |
             spigot
             paper
             purpur
             bukkit
-          
+
           game-versions: |
             1.20.x
             1.21.x
 
+  # ── DEPLOY: SPIGOTMC ───────────────────────────────────────────────────────
+  # Skipped automatically when SPIGOT_API_KEY or SPIGOT_RESOURCE_ID is absent.
   deploy-spigot:
-    needs: build
+    needs: [check-secrets, build]
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_spigot == 'true') ||
-      github.event_name == 'workflow_run' ||
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
-    
+      needs.check-secrets.outputs.has_spigot == 'true' && (
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_spigot == 'true') ||
+        (github.event_name == 'workflow_run' && needs.build.result == 'success') ||
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+      )
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: plugin-release
           path: ./release
-      
+
       - name: Deploy to SpigotMC
         uses: GamerCoder215/spigot-updates@v1
         with:
@@ -204,20 +257,27 @@ jobs:
           api-key: ${{ secrets.SPIGOT_API_KEY }}
           file: ./release/*.jar
 
+  # ── SUMMARY ────────────────────────────────────────────────────────────────
   summary:
-    needs: [build, deploy-github, deploy-modrinth, deploy-spigot]
+    needs: [check-secrets, build, deploy-github, deploy-modrinth, deploy-spigot]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Deployment summary
         run: |
-          echo "## 🚀 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Deployment Complete!"            >> $GITHUB_STEP_SUMMARY
+          echo ""                                       >> $GITHUB_STEP_SUMMARY
           echo "**Version:** v${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Plugin:** ${{ needs.build.outputs.jar_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Deployment Status" >> $GITHUB_STEP_SUMMARY
-          echo "- GitHub Release: ${{ needs.deploy-github.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Modrinth: ${{ needs.deploy-modrinth.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- SpigotMC: ${{ needs.deploy-spigot.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Plugin:**  ${{ needs.build.outputs.jar_name }}" >> $GITHUB_STEP_SUMMARY
+          echo ""                                       >> $GITHUB_STEP_SUMMARY
+          echo "### Platform Status"                    >> $GITHUB_STEP_SUMMARY
+          echo "| Platform       | Result |"            >> $GITHUB_STEP_SUMMARY
+          echo "|----------------|--------|"            >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Release | ${{ needs.deploy-github.result }}   |" >> $GITHUB_STEP_SUMMARY
+          echo "| Modrinth       | ${{ needs.deploy-modrinth.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SpigotMC       | ${{ needs.deploy-spigot.result }}   |" >> $GITHUB_STEP_SUMMARY
+          echo ""                                       >> $GITHUB_STEP_SUMMARY
+          echo "### Secret Status"                      >> $GITHUB_STEP_SUMMARY
+          echo "- Modrinth secrets present: ${{ needs.check-secrets.outputs.has_modrinth }}" >> $GITHUB_STEP_SUMMARY
+          echo "- SpigotMC secrets present: ${{ needs.check-secrets.outputs.has_spigot }}"   >> $GITHUB_STEP_SUMMARY
