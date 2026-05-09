@@ -1,8 +1,8 @@
 name: ElytraRace
-version: 1.1.0
+version: 1.1.2
 main: com.elytrarace.ElytraRacePlugin
 api-version: 1.21
-author: YourName
+author: Kartik Fulara
 description: Advanced multi-lobby Elytra Racing system with ready state, regions, and countdown.
 
 commands:
