@@ -550,6 +550,8 @@ public class RaceCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/er setup lobby §7- Set lobby");
             sender.sendMessage("§e/er setup start §7- Set start region");
             sender.sendMessage("§e/er setup finish §7- Set finish region");
+            sender.sendMessage("§e/er setup addring <name> §7- Add ring at your location");
+            sender.sendMessage("§e/er setup removering <name> §7- Remove a ring");
         }
         sender.sendMessage("§6§l╚════════════════════════════════════╝");
     }
@@ -603,6 +605,37 @@ public class RaceCommand implements CommandExecutor, TabCompleter {
                 regionManager.saveRegionFromSelection(minF, maxF, RegionManager.RegionType.FINISH);
                 sender.sendMessage(plugin.getConfigManager().getPrefix() + "§aFinish region saved.");
                 return true;
+            case "addring":
+                if (args.length < 3) {
+                    sender.sendMessage("§cUsage: /er setup addring <name>");
+                    return true;
+                }
+                String ringName = args[2];
+                plugin.getConfigManager().addRing(ringName, player.getLocation());
+                plugin.getRaceListener().refreshRingCache();
+                Location loc = player.getLocation();
+                sender.sendMessage(plugin.getConfigManager().getPrefix() +
+                    "§aRing '" + ringName + "' added at X: " +
+                    String.format("%.0f", loc.getX()) + " Y: " +
+                    String.format("%.0f", loc.getY()) + " Z: " +
+                    String.format("%.0f", loc.getZ()));
+                return true;
+            case "removering":
+                if (args.length < 3) {
+                    sender.sendMessage("§cUsage: /er setup removering <name>");
+                    return true;
+                }
+                String removeTarget = args[2];
+                if (!plugin.getConfigManager().getRingLocations().containsKey(removeTarget)) {
+                    sender.sendMessage(plugin.getConfigManager().getPrefix() +
+                        "§cRing not found: " + removeTarget);
+                    return true;
+                }
+                plugin.getConfigManager().removeRing(removeTarget);
+                plugin.getRaceListener().refreshRingCache();
+                sender.sendMessage(plugin.getConfigManager().getPrefix() +
+                    "§aRing '" + removeTarget + "' removed.");
+                return true;
             default:
                 showHelp(sender);
                 return true;
@@ -625,7 +658,7 @@ public class RaceCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
                 case "setup":
-                    return Arrays.asList("lobby", "start", "finish");
+                    return Arrays.asList("lobby", "start", "finish", "addring", "removering");
                 case "stats":
                 case "pb":
                 case "forcejoin":
@@ -634,6 +667,10 @@ public class RaceCommand implements CommandExecutor, TabCompleter {
                     return Collections.singletonList("rings");
                 case "platform":
                     return Arrays.asList("create", "remove");
+            }
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("setup") && args[1].equalsIgnoreCase("removering")) {
+                return new ArrayList<>(plugin.getConfigManager().getRingLocations().keySet());
             }
         }
         return Collections.emptyList();
